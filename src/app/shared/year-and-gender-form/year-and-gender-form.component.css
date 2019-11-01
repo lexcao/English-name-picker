@@ -1,0 +1,14 @@
+form {
+  width: 100%;
+  display: flex;
+  justify-content: space-evenly;
+  align-items: center;
+}
+
+form mat-radio-group mat-radio-button {
+  padding: 0 8px;
+}
+
+form mat-form-field {
+  width: 120px;
+}

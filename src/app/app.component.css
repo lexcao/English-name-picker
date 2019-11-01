@@ -1,0 +1,16 @@
+
+.fill-remaining-space {
+  flex: 1 1 auto;
+}
+
+.icon {
+  padding: 0 14px;
+}
+
+main {
+  margin: 24px;
+}
+
+footer p {
+  text-align: center;
+}

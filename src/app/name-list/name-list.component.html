@@ -1,0 +1,53 @@
+<mat-card>
+
+  <mat-card-header>
+    <mat-card-title>Choose year and gender to query</mat-card-title>
+  </mat-card-header>
+
+  <mat-card-content>
+    <div>
+      <app-year-and-gender-form>
+        <button [disabled]="query.invalid()" mat-raised-button (click)="onQuery()">Query</button>
+      </app-year-and-gender-form>
+    </div>
+
+    <div style="position: relative">
+
+      <div class="loading-shade" *ngIf="isLoading">
+        <mat-spinner></mat-spinner>
+      </div>
+
+      <table mat-table [dataSource]="dataSource">
+        <!-- Rank Column -->
+        <ng-container matColumnDef="rank">
+          <th mat-header-cell *matHeaderCellDef> Rank</th>
+          <td mat-cell *matCellDef="let person; index as rank"> {{rank + 1}} </td>
+        </ng-container>
+
+        <!-- Name Column -->
+        <ng-container matColumnDef="name">
+          <th mat-header-cell *matHeaderCellDef> Name</th>
+          <td mat-cell *matCellDef="let person"> {{person.name}} </td>
+        </ng-container>
+
+        <!-- Gender Column -->
+        <ng-container matColumnDef="gender">
+          <th mat-header-cell *matHeaderCellDef> Gender</th>
+          <td mat-cell *matCellDef="let person"> {{person.gender}} </td>
+        </ng-container>
+
+        <!-- Occurrences Column -->
+        <ng-container matColumnDef="occurrences">
+          <th mat-header-cell *matHeaderCellDef> Occurrences</th>
+          <td mat-cell *matCellDef="let person"> {{person.occurrences}} </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+      </table>
+
+      <mat-paginator [pageSize]="10" showFirstLastButtons></mat-paginator>
+    </div>
+  </mat-card-content>
+
+</mat-card>

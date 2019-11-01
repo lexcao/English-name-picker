@@ -1,0 +1,27 @@
+<div>
+  <form [formGroup]="voiceControl">
+    <mat-form-field >
+      <mat-label>Speech language</mat-label>
+      <mat-select formControlName="lang" (selectionChange)="onSelect('lang')">
+        <mat-option
+          [id]="voice.lang"
+          *ngFor="let voice of availableVoices"
+          [value]="voice.lang">
+          {{voice.lang}}
+        </mat-option>
+      </mat-select>
+    </mat-form-field>
+    <mat-form-field >
+      <mat-label>Speaker name</mat-label>
+      <mat-select formControlName="name" (selectionChange)="onSelect('name')">
+        <mat-option
+          [id]="voice.name"
+          *ngFor="let voice of availableNames"
+          [value]="voice.name">
+          {{voice.name}}
+        </mat-option>
+      </mat-select>
+    </mat-form-field>
+    <mat-slide-toggle (change)="onToggle($event.checked)" formGroupName="enabled">Enable Speech</mat-slide-toggle>
+  </form>
+</div>

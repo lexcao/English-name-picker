@@ -1,0 +1,70 @@
+<mat-card>
+  <mat-horizontal-stepper linear="true" #stepper>
+    <mat-step [stepControl]="$any(basic.group())">
+      <ng-template matStepLabel>Fill out basic</ng-template>
+      <app-year-and-gender-form #basic></app-year-and-gender-form>
+      <button
+        [disabled]="basic.invalid()"
+        mat-button
+        matStepperNext
+        class="right"
+        (click)="fetchResult(basic.value())">
+        Next
+      </button>
+    </mat-step>
+    <mat-step [stepControl]="$any(extend)" optional="true">
+      <form [formGroup]="extend">
+        <ng-template matStepLabel>Fill out extend</ng-template>
+        <mat-button-toggle-group formControlName="startWith">
+          <mat-button-toggle *ngFor="let it of letters" [value]="it" aria-label="{{it}}">{{it}}
+          </mat-button-toggle>
+        </mat-button-toggle-group>
+      </form>
+      <div class="right">
+        <button mat-button matStepperPrevious>Back</button>
+        <button mat-button matStepperNext (click)="filterResult();">Next</button>
+      </div>
+    </mat-step>
+    <mat-step>
+      <ng-template matStepLabel>Result</ng-template>
+      <app-speech-setting></app-speech-setting>
+      <div *ngIf="persons.length !== 0">
+        <mat-chip-list aria-label="names">
+          <mat-chip
+            *ngFor="let p of persons; let i = index;"
+            [selected]="p.selected"
+            [selectable]="false"
+            (click)="onSelect(i)"
+            [color]="colorByGender(p.person.gender)"
+          >{{p.person.name}}</mat-chip>
+        </mat-chip-list>
+        <button mat-button [style.width.%]="100" (click)="loadMore()" [disabled]="canLoad()">load more
+          ({{canLoad() ? filtered.length : offset}} / {{filtered.length}})
+        </button>
+      </div>
+      <div>
+        <button mat-button matStepperPrevious>Back</button>
+        <button mat-button (click)="stepper.reset()">Reset</button>
+        <button class="right" mat-button matStepperNext>Show selected</button>
+      </div>
+    </mat-step>
+    <mat-step>
+      <ng-template matStepLabel>Selected</ng-template>
+      <app-speech-setting></app-speech-setting>
+        <mat-chip-list aria-label="selected-names">
+          <mat-chip
+            *ngFor="let p of selectedPerson();"
+            selected = "true"
+            (click)="speech(p.name)"
+            [color]="colorByGender(p.gender)"
+            removable = "true"
+            (removed)="removeSelected(p.name)"
+          >{{p.name}}</mat-chip>
+        </mat-chip-list>
+      <div>
+        <button mat-button matStepperPrevious>Back</button>
+        <button mat-button (click)="stepper.reset()">Reset</button>
+      </div>
+    </mat-step>
+  </mat-horizontal-stepper>
+</mat-card>

@@ -1,0 +1,11 @@
+
+mat-button-toggle-group {
+  display: grid;
+  justify-content: center;
+  grid-template-columns: repeat(13, 40px [letter]);
+  grid-template-rows: 1fr 1fr;
+}
+
+.right {
+  float: right;
+}
