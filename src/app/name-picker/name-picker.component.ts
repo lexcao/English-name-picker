@@ -1,8 +1,8 @@
-import {Component, OnInit} from '@angular/core';
-import {FormBuilder, FormGroup} from '@angular/forms';
-import {NameService} from '../name.service';
-import {Person, PersonVO} from '../model/models';
-import {SpeechService} from '../speech.service';
+import { Component, OnInit } from '@angular/core';
+import { FormBuilder, FormGroup } from '@angular/forms';
+import { NameService } from '../name.service';
+import { Person, PersonVO } from '../model/models';
+import { SpeechService } from '../speech.service';
 
 @Component({
   selector: 'app-name-picker',

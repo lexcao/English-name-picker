@@ -1,13 +1,13 @@
-import {BrowserModule} from '@angular/platform-browser';
-import {NgModule} from '@angular/core';
+import { BrowserModule } from '@angular/platform-browser';
+import { NgModule } from '@angular/core';
 
-import {AppRoutingModule} from './app-routing.module';
-import {AppComponent} from './app.component';
-import {HttpClientModule} from '@angular/common/http';
-import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
-import {MatTableModule} from '@angular/material/table';
-import {MatPaginatorModule} from '@angular/material/paginator';
-import {NameListComponent} from './name-list/name-list.component';
+import { AppRoutingModule } from './app-routing.module';
+import { AppComponent } from './app.component';
+import { HttpClientModule } from '@angular/common/http';
+import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import { MatTableModule } from '@angular/material/table';
+import { MatPaginatorModule } from '@angular/material/paginator';
+import { NameListComponent } from './name-list/name-list.component';
 import {
   MatAutocompleteModule,
   MatBadgeModule,
@@ -19,13 +19,15 @@ import {
   MatIconModule,
   MatInputModule,
   MatProgressSpinnerModule,
-  MatRadioModule, MatSelectModule, MatSlideToggleModule,
+  MatRadioModule,
+  MatSelectModule,
+  MatSlideToggleModule,
   MatStepperModule,
   MatToolbarModule
 } from '@angular/material';
-import {ReactiveFormsModule} from '@angular/forms';
-import {NamePickerComponent} from './name-picker/name-picker.component';
-import {YearAndGenderFormComponent} from './shared/year-and-gender-form/year-and-gender-form.component';
+import { ReactiveFormsModule } from '@angular/forms';
+import { NamePickerComponent } from './name-picker/name-picker.component';
+import { YearAndGenderFormComponent } from './shared/year-and-gender-form/year-and-gender-form.component';
 import { SpeechSettingComponent } from './speech-setting/speech-setting.component';
 
 

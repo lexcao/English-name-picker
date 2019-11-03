@@ -1,9 +1,9 @@
-import {Component, OnInit, ViewChild} from '@angular/core';
-import {MatPaginator, MatTableDataSource} from '@angular/material';
+import { Component, OnInit, ViewChild } from '@angular/core';
+import { MatPaginator, MatTableDataSource } from '@angular/material';
 
-import {Person} from '../model/models';
-import {NameService} from '../name.service';
-import {YearAndGenderFormComponent} from '../shared/year-and-gender-form/year-and-gender-form.component';
+import { Person } from '../model/models';
+import { NameService } from '../name.service';
+import { YearAndGenderFormComponent } from '../shared/year-and-gender-form/year-and-gender-form.component';
 
 @Component({
   selector: 'app-name-list',

@@ -1,6 +1,6 @@
-import {Component, OnInit} from '@angular/core';
-import {SpeechService} from '../speech.service';
-import {FormBuilder, FormGroup} from '@angular/forms';
+import { Component, OnInit } from '@angular/core';
+import { SpeechService } from '../speech.service';
+import { FormBuilder, FormGroup } from '@angular/forms';
 
 @Component({
   selector: 'app-speech-setting',

@@ -1,8 +1,8 @@
-import {Component, OnInit} from '@angular/core';
-import {Observable} from 'rxjs';
-import {FormBuilder, FormGroup, Validators} from '@angular/forms';
-import {map, startWith} from 'rxjs/operators';
-import {YearAndGender} from '../../model/models';
+import { Component, OnInit } from '@angular/core';
+import { Observable } from 'rxjs';
+import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { map, startWith } from 'rxjs/operators';
+import { YearAndGender } from '../../model/models';
 
 @Component({
   selector: 'app-year-and-gender-form',

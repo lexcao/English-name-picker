@@ -1,6 +1,6 @@
-import {Injectable} from '@angular/core';
-import {Observable, Subject} from 'rxjs';
-import {SpeechConfig} from './model/models';
+import { Injectable } from '@angular/core';
+import { Observable, Subject } from 'rxjs';
+import { SpeechConfig } from './model/models';
 
 @Injectable({
   providedIn: 'root'
