@@ -16,8 +16,8 @@ export class NameListComponent implements OnInit {
   dataSource = new MatTableDataSource<Person>();
   displayedColumns = ['rank', 'name', 'gender', 'occurrences'];
 
-  @ViewChild(MatPaginator, { static: true }) paginator: MatPaginator;
-  @ViewChild(YearAndGenderFormComponent, { static: true }) query: YearAndGenderFormComponent;
+  @ViewChild(MatPaginator, {static: true}) paginator: MatPaginator;
+  @ViewChild(YearAndGenderFormComponent, {static: true}) query: YearAndGenderFormComponent;
 
   constructor(
     private nameService: NameService
