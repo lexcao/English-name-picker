@@ -1,0 +1,43 @@
+
+.container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  grid-gap: 2rem;
+  align-items: center;
+  margin: 0 auto;
+}
+
+mat-card {
+  height: 240px;
+  cursor: pointer;
+  outline: none;
+  animation-name: fadeInUp;
+
+}
+
+mat-card:nth-child(1) {
+  background-color: #e5ffff;
+  animation-duration: 800ms;
+}
+
+mat-card:nth-child(2) {
+  background-color: #b2ebf2;
+  animation-delay: 300ms;
+  animation-duration: 800ms;
+}
+
+mat-card:nth-child(3) {
+  background-color: #81b9bf;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translate(0, 50%);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate(0, 0);
+  }
+}

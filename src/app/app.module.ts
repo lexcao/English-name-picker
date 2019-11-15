@@ -29,6 +29,7 @@ import { ReactiveFormsModule } from '@angular/forms';
 import { NamePickerComponent } from './name-picker/name-picker.component';
 import { YearAndGenderFormComponent } from './shared/year-and-gender-form/year-and-gender-form.component';
 import { SpeechSettingComponent } from './speech-setting/speech-setting.component';
+import { HomeComponent } from './home/home.component';
 
 
 @NgModule({
@@ -37,7 +38,8 @@ import { SpeechSettingComponent } from './speech-setting/speech-setting.componen
     NameListComponent,
     NamePickerComponent,
     YearAndGenderFormComponent,
-    SpeechSettingComponent
+    SpeechSettingComponent,
+    HomeComponent
   ],
   imports: [
     BrowserModule,
