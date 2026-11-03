@@ -739,19 +739,19 @@ main:has(.choose-page) { padding-top:14px }
 body.overview-lock { overflow:hidden }
 #overview { position:fixed; inset:0; z-index:50; background:var(--background); color:var(--text); opacity:0; transition:opacity .3s ease; overflow:hidden }
 #overview.is-open { opacity:1 }
-.overview-bar { position:absolute; z-index:2; inset:0 0 auto; display:flex; align-items:center; justify-content:space-between; gap:16px; padding:18px clamp(16px,4vw,48px); background:linear-gradient(var(--background) 55%,transparent) }
+.overview-bar { position:absolute; z-index:2; inset:0 0 auto; display:flex; align-items:center; justify-content:space-between; gap:16px; padding:18px clamp(16px,4vw,48px); background:color-mix(in srgb,var(--background) 88%,transparent); -webkit-backdrop-filter:blur(14px); backdrop-filter:blur(14px); border-bottom:1px solid var(--line); box-shadow:0 12px 24px -8px var(--background) }
 .overview-bar h2 { font:500 1.5rem/1.2 Georgia,"Songti SC",serif; margin:0 }
 .overview-bar p { margin:4px 0 0; font-size:.75rem; color:var(--muted) }
 #overview-close { flex-shrink:0; border-radius:999px; padding:10px 18px; min-height:42px; background:var(--accent); color:var(--panel); border:0; font-size:.8rem }
 .overview-stage { position:absolute; inset:0; perspective:1400px; display:flex; align-items:center; justify-content:center;
   -webkit-mask-image:radial-gradient(ellipse 75% 70% at 50% 52%,#000 55%,transparent 100%); mask-image:radial-gradient(ellipse 75% 70% at 50% 52%,#000 55%,transparent 100%) }
-.overview-plane { display:flex; flex-direction:column; gap:22px; transform:rotateX(18deg) rotateZ(-22deg) scale(1.45); transform-style:preserve-3d }
-.overview-row { display:flex; justify-content:center; width:100vw }
+.overview-plane { --cw:236px; --gap:18px; display:flex; flex-direction:column; gap:var(--gap); flex-shrink:0; width:calc(var(--per) * (var(--cw) + var(--gap))); transform:rotateX(18deg) rotateZ(-22deg) scale(1.45); transform-style:preserve-3d }
+.overview-row { display:flex; justify-content:flex-start; width:100% }
 .overview-track { display:flex; width:max-content; animation:overview-drift var(--dur,50s) linear infinite; will-change:transform }
 .overview-row.is-alt .overview-track { animation-direction:reverse }
 .overview-row:hover .overview-track { animation-play-state:paused }
-.overview-set { display:flex; gap:18px; padding-right:18px }
-.overview-card { display:flex; flex-direction:column; align-items:flex-start; gap:6px; flex-shrink:0; min-width:180px; padding:20px 26px; border-radius:20px; border:1px solid var(--line); background:var(--panel); color:var(--text); text-align:left; white-space:nowrap; box-shadow:0 14px 26px -22px var(--text); cursor:pointer; transition:transform .2s ease, border-color .2s ease }
+.overview-set { display:flex; gap:var(--gap); padding-right:var(--gap) }
+.overview-card { display:flex; flex-direction:column; align-items:flex-start; gap:6px; flex-shrink:0; box-sizing:border-box; width:var(--cw); overflow:hidden; padding:20px 24px; border-radius:20px; border:1px solid var(--line); background:var(--panel); color:var(--text); text-align:left; white-space:nowrap; box-shadow:0 14px 26px -22px var(--text); cursor:pointer; transition:transform .2s ease, border-color .2s ease }
 .overview-row.is-alt .overview-card { background:var(--soft) }
 .overview-card:hover,.overview-card:focus-visible { transform:translateY(-4px); border-color:var(--accent) }
 .overview-card strong { font:500 2rem/1.1 Georgia,"Songti SC",serif; letter-spacing:-.03em }
@@ -764,8 +764,8 @@ body.overview-lock { overflow:hidden }
   #overview-close { color:#10180f }
 }
 @media(max-width:600px) {
-  .overview-plane { transform:rotateX(18deg) rotateZ(-22deg) scale(1.25); gap:18px }
-  .overview-card { min-width:150px; padding:18px 22px }
+  .overview-plane { --cw:196px; --gap:16px; transform:rotateX(18deg) rotateZ(-22deg) scale(1.25) }
+  .overview-card { padding:18px 20px }
   .overview-card strong { font-size:1.8rem }
   .overview-bar h2 { font-size:1.15rem }
   .overview-bar p { display:none }
@@ -778,3 +778,5 @@ body.overview-lock { overflow:hidden }
   .swipe-card,.overview-card { box-shadow:0 18px 30px -22px #000 }
   .swipe-card.is-behind:nth-child(3) { background:var(--soft); opacity:.7 }
 }
+.overview-card.is-long strong { font-size:1.55rem }
+.overview-card strong,.overview-card small { max-width:100%; overflow:hidden; text-overflow:ellipsis }
