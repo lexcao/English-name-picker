@@ -161,14 +161,137 @@ function results(browse: boolean) {
     }
     return `<div class="name-grid">${filtered.slice(0, visible).map(p => `<button class="name-card ${selected.has(p.name) ? 'is-selected' : ''}" data-select="${p.name}" aria-pressed="${selected.has(p.name)}"><span class="name-rank">#${p.rank}</span><strong>${p.name}</strong><span class="name-mark" aria-hidden="true">${selected.has(p.name) ? '✓' : '+'}</span></button>`).join('')}</div><button class="load-more" id="more" ${visible >= filtered.length ? 'disabled' : ''}>${t.more} · ${Math.min(visible, filtered.length)} / ${filtered.length}</button>`;
 }
+const swipeMessages = {
+    en: { hint: 'Your pinyin initial', order: 'Order', rankOrder: 'By rank', shuffle: 'Shuffle', keep: 'Keep', skip: 'Skip', undo: 'Undo', play: 'Play sound', guide: 'One name at a time. Swipe left to skip, right to keep.', keys: '← Skip · → Keep · Space Listen · U Undo', end: 'A little closer to your name.', kept: 'Names kept this round', review: 'Review shortlist', restart: 'Restart', empty: 'Keep a name you love. It will be waiting here.', inYear: 'in', occurrences: 'births', remaining: 'names remaining' },
+    zh: { hint: '你中文名拼音的首字母', order: '排序', rankOrder: '按排名', shuffle: '随机', keep: '收藏', skip: '跳过', undo: '撤销', play: '播放发音', guide: '一次认识一个名字。向左跳过，向右收藏。', keys: '← 跳过 · → 收藏 · 空格 发音 · U 撤销', end: '离你的名字，又近了一步。', kept: '本轮收藏的名字', review: '查看候选名单', restart: '重新开始', empty: '收藏一个心动的名字，让它在这里等你。', inYear: '· 年份', occurrences: '人使用', remaining: '个名字待探索' }
+};
+let chooseInitial = /^[A-Z]$/.test(read('choose-initial') ?? '') ? read('choose-initial')! : '';
+let chooseOrder = read('choose-order') === 'shuffle' ? 'shuffle' : 'rank';
+let deckRows: Person[] = [];
+let deckSource: Person[] | null = null;
+let decisions: { person: Person; keep: boolean }[] = [];
+let deciding = false;
+const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+function resetDeck() {
+    decisions = [];
+    deckRows = [...rows].sort((a, b) => a.rank - b.rank);
+    if (chooseOrder === 'shuffle') {
+        for (let i = deckRows.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [deckRows[i], deckRows[j]] = [deckRows[j], deckRows[i]];
+        }
+    }
+    deckSource = rows;
+}
+function availableCards() {
+    if (deckSource !== rows) resetDeck();
+    const done = new Set(decisions.map(d => d.person.name));
+    return deckRows.filter(p => p.name.startsWith(chooseInitial) && !selected.has(p.name) && !done.has(p.name));
+}
+function choosePage() {
+    const t = messages[locale], w = swipeMessages[locale];
+    const cards = availableCards();
+    return `<section class="choose-page"><div class="page-title"><div><p class="eyebrow">01 — 02 — 03</p><h1>${t.choose}</h1></div></div><p class="muted guidance">${w.guide}</p>
+    <div class="choose-controls panel"><label>${t.year}<input id="choose-year" type="number" min="${meta.years[0]}" max="${meta.years[1]}" step="1" value="${year}"></label><fieldset><legend>${t.gender}</legend><div class="segmented">${(['male', 'female'] as const).map(g => `<label><input type="radio" name="choose-gender" value="${g}" ${gender === g ? 'checked' : ''}><span>${t[g]}</span></label>`).join('')}</div></fieldset><label class="initial-control">${t.initial}<select id="choose-initial">${['', ...'ABCDEFGHIJKLMNOPQRSTUVWXYZ'].map(l => `<option value="${l}" ${chooseInitial === l ? 'selected' : ''}>${l || t.all}</option>`).join('')}</select><small>${w.hint}</small></label><label>${w.order}<select id="choose-order"><option value="rank" ${chooseOrder === 'rank' ? 'selected' : ''}>${w.rankOrder}</option><option value="shuffle" ${chooseOrder === 'shuffle' ? 'selected' : ''}>${w.shuffle}</option></select></label></div>
+    <div class="workspace swipe-workspace"><section class="swipe-stage" aria-label="${t.results}">${loading ? `<p class="status" role="status">${t.loading}</p>` : failed ? `<p role="alert">${t.error}</p><button id="retry">${t.retry}</button>` : cards.length ? `<div class="deck-meta"><span>${t.results}</span><span>${cards.length} ${w.remaining}</span></div><div class="swipe-stack">${cards.slice(0, 4).map((p, i) => `<article class="swipe-card ${i === 0 ? 'is-top' : 'is-behind'}" data-name="${esc(p.name)}" style="--depth:${i};z-index:${4 - i}" ${i ? 'aria-hidden="true" inert' : ''}><div class="card-topline"><span>${t.rank} #${p.rank} ${w.inYear} ${year}</span><span>${t[p.gender]}</span></div><span class="stamp-keep" aria-hidden="true">${w.keep}</span><span class="stamp-skip" aria-hidden="true">${w.skip}</span><h2>${esc(p.name)}</h2><p class="card-occurrences">${p.occurrences.toLocaleString(locale)} ${w.occurrences}</p><button class="card-pronounce" data-speak="${esc(p.name)}" ${i ? 'tabindex="-1"' : ''} aria-label="${t.listen} ${esc(p.name)}">♪ <span>${t.speech}</span></button><div class="card-rule" aria-hidden="true">n.</div></article>`).join('')}</div>` : `<div id="deck-end" class="panel" role="status"><p class="eyebrow">${t.results}</p><h2>${w.end}</h2><p>${w.kept}: <strong>${decisions.filter(d => d.keep && selected.has(d.person.name)).length}</strong></p><button id="review-shortlist">${w.review}</button><button id="restart" class="primary">${w.restart}</button></div>`}
+    <div class="swipe-actions"><button id="skip" ${!cards.length || loading || failed ? 'disabled' : ''}>← ${w.skip}</button><button id="play" ${!cards.length || loading || failed || !synth ? 'disabled' : ''}>♪ ${w.play}</button><button id="keep" class="primary" ${!cards.length || loading || failed ? 'disabled' : ''}>${w.keep} ♡</button></div><button id="undo" class="swipe-undo" ${!decisions.length ? 'disabled' : ''}>↶ ${w.undo}</button><p class="swipe-keys muted">${w.keys}</p>${speechSettings()}</section><div id="choose-shortlist" tabindex="-1">${shortlist().replace(t.empty, w.empty)}</div></div></section>`;
+}
+function decide(keep: boolean) {
+    if (deciding || loading || failed || route() !== 'choose') return;
+    const person = availableCards()[0];
+    const card = document.querySelector<HTMLElement>('.swipe-card.is-top');
+    if (!person || !card) return;
+    deciding = true;
+    decisions.push({ person, keep });
+    if (keep) {
+        selected.set(person.name, person);
+        saveShortlist();
+        if (speechEnabled) speak(person.name);
+    }
+    if (reducedMotion()) { render(); return; }
+    card.style.transition = 'transform 340ms ease-in, opacity 340ms ease-in';
+    card.querySelector<HTMLElement>(keep ? '.stamp-keep' : '.stamp-skip')!.style.opacity = '1';
+    if (keep) {
+        const target = document.getElementById('choose-shortlist')!.getBoundingClientRect();
+        const rect = card.getBoundingClientRect();
+        card.style.transform = `translate(${target.x + target.width / 2 - rect.x - rect.width / 2}px, ${target.y - rect.y + 30}px) scale(.15) rotate(12deg)`;
+    } else card.style.transform = `translate(${-window.innerWidth}px, 60px) rotate(-24deg)`;
+    card.style.opacity = '0';
+    window.setTimeout(() => { if (card.isConnected) render(); }, 350);
+}
+function undoDecision() {
+    if (route() !== 'choose') return;
+    const last = decisions.pop();
+    if (!last) return;
+    if (last.keep) { selected.delete(last.person.name); saveShortlist(); }
+    render();
+}
+function bindSwipe() {
+    document.getElementById('skip')?.addEventListener('click', () => decide(false));
+    document.getElementById('keep')?.addEventListener('click', () => decide(true));
+    document.getElementById('undo')?.addEventListener('click', undoDecision);
+    document.getElementById('play')?.addEventListener('click', () => { const p = availableCards()[0]; if (p) speak(p.name); });
+    document.getElementById('restart')?.addEventListener('click', () => { resetDeck(); render(); });
+    document.getElementById('review-shortlist')?.addEventListener('click', () => { const target = document.getElementById('choose-shortlist')!; target.scrollIntoView({ behavior: reducedMotion() ? 'instant' : 'smooth', block: 'start' }); target.focus({ preventScroll: true }); });
+    document.getElementById('choose-year')?.addEventListener('change', e => {
+        const input = e.target as HTMLInputElement;
+        if (!input.checkValidity()) { input.reportValidity(); return; }
+        year = Number(input.value); void load();
+    });
+    document.querySelectorAll<HTMLInputElement>('[name="choose-gender"]').forEach(input => input.onchange = () => { gender = input.value as Person['gender']; void load(); });
+    document.getElementById('choose-initial')?.addEventListener('change', e => { chooseInitial = (e.target as HTMLSelectElement).value; save('choose-initial', chooseInitial); resetDeck(); render(); });
+    document.getElementById('choose-order')?.addEventListener('change', e => { chooseOrder = (e.target as HTMLSelectElement).value; save('choose-order', chooseOrder); resetDeck(); render(); });
+    const card = document.querySelector<HTMLElement>('.swipe-card.is-top');
+    if (!card) return;
+    let drag: { id: number; x: number; y: number; time: number; lastX: number; lastTime: number; velocity: number } | null = null;
+    const spring = () => {
+        card.style.transition = reducedMotion() ? 'none' : 'transform 500ms cubic-bezier(.2,1.5,.45,1)';
+        card.style.transform = '';
+        card.querySelectorAll<HTMLElement>('.stamp-keep,.stamp-skip').forEach(stamp => stamp.style.opacity = '0');
+    };
+    card.onpointerdown = e => {
+        if (deciding || !e.isPrimary || e.button !== 0 || (e.target as HTMLElement).closest('button')) return;
+        drag = { id: e.pointerId, x: e.clientX, y: e.clientY, time: performance.now(), lastX: e.clientX, lastTime: performance.now(), velocity: 0 };
+        card.setPointerCapture(e.pointerId); card.style.transition = 'none';
+    };
+    card.onpointermove = e => {
+        if (!drag || drag.id !== e.pointerId) return;
+        const dx = e.clientX - drag.x, dy = e.clientY - drag.y, now = performance.now();
+        drag.velocity = (e.clientX - drag.lastX) / Math.max(1, now - drag.lastTime);
+        drag.lastX = e.clientX; drag.lastTime = now;
+        card.style.transform = `translate(${dx}px, ${dy}px) rotate(${reducedMotion() ? 0 : dx / card.offsetWidth * 18}deg)`;
+        card.querySelector<HTMLElement>('.stamp-keep')!.style.opacity = String(Math.min(1, Math.max(0, dx / (card.offsetWidth * .3))));
+        card.querySelector<HTMLElement>('.stamp-skip')!.style.opacity = String(Math.min(1, Math.max(0, -dx / (card.offsetWidth * .3))));
+    };
+    const release = (e: PointerEvent, cancel: boolean) => {
+        if (!drag || drag.id !== e.pointerId) return;
+        const dx = e.clientX - drag.x;
+        const fast = performance.now() - drag.lastTime < 100 && Math.abs(drag.velocity) > .65 && Math.sign(drag.velocity) === Math.sign(dx);
+        drag = null;
+        if (card.hasPointerCapture(e.pointerId)) card.releasePointerCapture(e.pointerId);
+        if (!cancel && (Math.abs(dx) >= card.offsetWidth * .3 || (Math.abs(dx) > 35 && fast))) decide(dx > 0);
+        else spring();
+    };
+    card.onpointerup = e => release(e, false);
+    card.onpointercancel = e => release(e, true);
+    card.onlostpointercapture = () => { if (drag) { drag = null; spring(); } };
+}
+window.addEventListener('keydown', e => {
+    if (route() !== 'choose' || (e.target instanceof HTMLElement && (e.target.closest('input,select,textarea,[contenteditable="true"]'))) || e.altKey || e.metaKey || e.repeat) return;
+    if (e.key === 'Backspace' || e.key.toLowerCase() === 'u' || (e.ctrlKey && e.key.toLowerCase() === 'z')) { e.preventDefault(); undoDecision(); }
+    else if (!e.ctrlKey && (e.key === 'ArrowRight' || e.key === 'ArrowLeft')) { e.preventDefault(); decide(e.key === 'ArrowRight'); }
+    else if (!e.ctrlKey && e.code === 'Space') { e.preventDefault(); const p = availableCards()[0]; if (p) speak(p.name); }
+});
 function render() {
+    deciding = false;
     const t = messages[locale], current = route();
     document.documentElement.lang = locale === 'zh' ? 'zh-CN' : 'en';
     document.title = `${t[current as 'choose'] || t.home} · ${t.brand}`;
-    app.innerHTML = `<header><a class="brand" href="#/"><span class="brand-icon" aria-hidden="true">n.</span>${t.brand}</a><button id="locale" class="locale" aria-label="${locale === 'en' ? '切换中文' : 'Switch to English'}">${locale === 'en' ? '中文' : 'English'}</button></header><nav aria-label="${t.brand}">${(['', 'choose', 'browser', 'check'] as const).map(r => `<a href="#/${r}" ${current === r ? 'aria-current="page"' : ''}>${r ? t[r] : t.home}</a>`).join('')}</nav><main>${!meta ? `<p role="${failed ? 'alert' : 'status'}">${failed ? t.error : t.loading}</p>${failed ? `<button id="retry-meta">${t.retry}</button>` : ''}` : current === '' ? `<section class="hero"><p class="eyebrow">${t.eyebrow}</p><h1>${t.title}</h1><p class="intro">${t.intro}</p><a class="primary" href="#/choose">${t.choose} <span aria-hidden="true">↗</span></a><div class="word-art" aria-hidden="true"><span>Oliver</span><span>Charlotte</span><span>James</span><span>Emma</span><span>You.</span></div></section><section class="method"><h2>${t.method}</h2><div class="steps">${(['one', 'two', 'three'] as const).map((key, i) => `<article><span class="step-number">0${i + 1}</span><h3>${t[key]}</h3><p>${t[`${key}Text`]}</p></article>`).join('')}</div></section>` : current === 'check' ? `<section class="panel check-panel"><p class="eyebrow">${t.check}</p><h1>${t.handle}</h1><ol class="handle-steps muted"><li>${t.handleStep1}</li><li>${t.handleStep2}</li><li>${t.handleStep3}</li></ol>${selected.size ? `<fieldset class="handle-shortlist"><legend>${t.quickFill}</legend><div>${[...selected.values()].map(p => `<button type="button" data-fill="${esc(p.name)}">${esc(p.name)}</button>`).join('')}</div></fieldset>` : ''}<form id="handle-form"><label>${t.handleLabel}<input id="handle" required pattern="[A-Za-z0-9_.]{1,30}" maxlength="30" value="${esc(handle)}" autocomplete="off" title="${t.invalid}"></label><button class="primary">${t.checkName}</button></form><div id="profile-links" aria-live="polite"></div></section>${shortlist()}` : `<div class="page-title"><div><p class="eyebrow">${current === 'choose' ? '01 — 02 — 03' : 'SSA / ' + year}</p><h1>${t[current as 'choose']}</h1></div><button id="reset">${t.reset}</button></div><p class="muted guidance">${t.oneText} ${t.twoText} ${t.threeText}</p><section class="panel">${form()}</section><div class="workspace"><section class="panel results"><div class="section-heading"><h2>${shortlistOnly ? t.selected : t.results}</h2>${current === 'choose' ? `<button id="show-selected">${shortlistOnly ? t.back : `${t.selected} (${selected.size})`}</button>` : ''}</div>${speechSettings()}${shortlistOnly ? shortlist() : `<fieldset class="letters"><legend>${t.initial}</legend><div>${['', ...'ABCDEFGHIJKLMNOPQRSTUVWXYZ'].map(l => `<button data-letter="${l}" aria-pressed="${initial === l}">${l || t.all}</button>`).join('')}</div></fieldset>${results(current === 'browser')}`}</section>${shortlist()}</div>`}</main>${meta ? `<footer><a href="${esc(meta.url)}" target="_blank" rel="noopener noreferrer">${t.data} ${meta.years[0]}–${meta.years[1]}</a><p>${t.about}</p></footer>` : ''}`;
+    app.innerHTML = `<header><a class="brand" href="#/"><span class="brand-icon" aria-hidden="true">n.</span>${t.brand}</a><button id="locale" class="locale" aria-label="${locale === 'en' ? '切换中文' : 'Switch to English'}">${locale === 'en' ? '中文' : 'English'}</button></header><nav aria-label="${t.brand}">${(['', 'choose', 'browser', 'check'] as const).map(r => `<a href="#/${r}" ${current === r ? 'aria-current="page"' : ''}>${r ? t[r] : t.home}</a>`).join('')}</nav><main>${!meta ? `<p role="${failed ? 'alert' : 'status'}">${failed ? t.error : t.loading}</p>${failed ? `<button id="retry-meta">${t.retry}</button>` : ''}` : current === '' ? `<section class="hero"><p class="eyebrow">${t.eyebrow}</p><h1>${t.title}</h1><p class="intro">${t.intro}</p><a class="primary" href="#/choose">${t.choose} <span aria-hidden="true">↗</span></a><div class="word-art" aria-hidden="true"><span>Oliver</span><span>Charlotte</span><span>James</span><span>Emma</span><span>You.</span></div></section><section class="method"><h2>${t.method}</h2><div class="steps">${(['one', 'two', 'three'] as const).map((key, i) => `<article><span class="step-number">0${i + 1}</span><h3>${t[key]}</h3><p>${t[`${key}Text`]}</p></article>`).join('')}</div></section>` : current === 'check' ? `<section class="panel check-panel"><p class="eyebrow">${t.check}</p><h1>${t.handle}</h1><ol class="handle-steps muted"><li>${t.handleStep1}</li><li>${t.handleStep2}</li><li>${t.handleStep3}</li></ol>${selected.size ? `<fieldset class="handle-shortlist"><legend>${t.quickFill}</legend><div>${[...selected.values()].map(p => `<button type="button" data-fill="${esc(p.name)}">${esc(p.name)}</button>`).join('')}</div></fieldset>` : ''}<form id="handle-form"><label>${t.handleLabel}<input id="handle" required pattern="[A-Za-z0-9_.]{1,30}" maxlength="30" value="${esc(handle)}" autocomplete="off" title="${t.invalid}"></label><button class="primary">${t.checkName}</button></form><div id="profile-links" aria-live="polite"></div></section>${shortlist()}` : current === 'choose' ? choosePage() : `<div class="page-title"><div><p class="eyebrow">${current === 'choose' ? '01 — 02 — 03' : 'SSA / ' + year}</p><h1>${t[current as 'choose']}</h1></div><button id="reset">${t.reset}</button></div><p class="muted guidance">${t.oneText} ${t.twoText} ${t.threeText}</p><section class="panel">${form()}</section><div class="workspace"><section class="panel results"><div class="section-heading"><h2>${shortlistOnly ? t.selected : t.results}</h2>${current === 'choose' ? `<button id="show-selected">${shortlistOnly ? t.back : `${t.selected} (${selected.size})`}</button>` : ''}</div>${speechSettings()}${shortlistOnly ? shortlist() : `<fieldset class="letters"><legend>${t.initial}</legend><div>${['', ...'ABCDEFGHIJKLMNOPQRSTUVWXYZ'].map(l => `<button data-letter="${l}" aria-pressed="${initial === l}">${l || t.all}</button>`).join('')}</div></fieldset>${results(current === 'browser')}`}</section>${shortlist()}</div>`}</main>${meta ? `<footer><a href="${esc(meta.url)}" target="_blank" rel="noopener noreferrer">${t.data} ${meta.years[0]}–${meta.years[1]}</a><p>${t.about}</p></footer>` : ''}`;
     bind();
 }
 function bind() {
+    if (route() === 'choose') bindSwipe();
     document.querySelector<HTMLDetailsElement>('.speech')?.addEventListener('toggle', e => { speechOpen = (e.target as HTMLDetailsElement).open; });
     const on = (id: string, fn: (e: Event) => void, event = 'click') => document.getElementById(id)?.addEventListener(event, fn);
     on('locale', () => { locale = locale === 'en' ? 'zh' : 'en'; save('locale', locale); render(); });
