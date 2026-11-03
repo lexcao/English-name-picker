@@ -1,3 +1,4 @@
+import { buildRows, rowDuration } from './overview';
 import './styles.css';
 type Person = {
     name: string;
@@ -162,8 +163,8 @@ function results(browse: boolean) {
     return `<div class="name-grid">${filtered.slice(0, visible).map(p => `<button class="name-card ${selected.has(p.name) ? 'is-selected' : ''}" data-select="${p.name}" aria-pressed="${selected.has(p.name)}"><span class="name-rank">#${p.rank}</span><strong>${p.name}</strong><span class="name-mark" aria-hidden="true">${selected.has(p.name) ? '✓' : '+'}</span></button>`).join('')}</div><button class="load-more" id="more" ${visible >= filtered.length ? 'disabled' : ''}>${t.more} · ${Math.min(visible, filtered.length)} / ${filtered.length}</button>`;
 }
 const swipeMessages = {
-    en: { hint: 'Your pinyin initial', order: 'Order', rankOrder: 'By rank', shuffle: 'Shuffle', keep: 'Keep', skip: 'Skip', undo: 'Undo', filters: 'Filters', play: 'Hear it', guide: 'Swipe left to skip, right to keep.', keys: '← Skip · → Keep · Space Listen · U Undo', end: 'A little closer to your name.', kept: 'Names kept this round', review: 'Review shortlist', restart: 'Restart', empty: 'Keep a name you love. It will be waiting here.', occurrences: 'births', remaining: 'names remaining' },
-    zh: { hint: '你中文名拼音的首字母', order: '排序', rankOrder: '按排名', shuffle: '随机', keep: '收藏', skip: '跳过', undo: '撤销', filters: '筛选', play: '听发音', guide: '一次认识一个名字。向左跳过，向右收藏。', keys: '← 跳过 · → 收藏 · 空格 发音 · U 撤销', end: '离你的名字，又近了一步。', kept: '本轮收藏的名字', review: '查看候选名单', restart: '重新开始', empty: '收藏一个心动的名字，让它在这里等你。', occurrences: '人使用', remaining: '个名字待探索' }
+    en: { hint: 'Your pinyin initial', order: 'Order', rankOrder: 'By rank', shuffle: 'Shuffle', keep: 'Keep', skip: 'Skip', undo: 'Undo', filters: 'Filters', play: 'Hear it', guide: 'Swipe left to skip, right to keep.', keys: '← Skip · → Keep · Space Listen · U Undo', end: 'A little closer to your name.', kept: 'Names kept this round', review: 'Review shortlist', restart: 'Restart', empty: 'Keep a name you love. It will be waiting here.', occurrences: 'births', remaining: 'names remaining', byRank: 'By popularity', shuffled: 'Shuffled', overview: 'Overview', overviewTitle: 'All names at a glance', overviewHint: 'Hover to pause · click a name to open it', back: 'Back to stack', ovBirths: 'births' },
+    zh: { hint: '你中文名拼音的首字母', order: '排序', rankOrder: '按排名', shuffle: '随机', keep: '收藏', skip: '跳过', undo: '撤销', filters: '筛选', play: '听发音', guide: '一次认识一个名字。向左跳过，向右收藏。', keys: '← 跳过 · → 收藏 · 空格 发音 · U 撤销', end: '离你的名字，又近了一步。', kept: '本轮收藏的名字', review: '查看候选名单', restart: '重新开始', empty: '收藏一个心动的名字，让它在这里等你。', occurrences: '人使用', remaining: '个名字待探索', byRank: '按热度排列', shuffled: '随机排列', overview: '全部浏览', overviewTitle: '一眼看完所有名字', overviewHint: '悬停暂停 · 点击名字查看', back: '返回卡片', ovBirths: '人' }
 };
 let chooseFiltersOpen = false;
 let chooseInitial = /^[A-Z]$/.test(read('choose-initial') ?? '') ? read('choose-initial')! : '';
@@ -172,9 +173,11 @@ let deckRows: Person[] = [];
 let deckSource: Person[] | null = null;
 let decisions: { person: Person; keep: boolean }[] = [];
 let deciding = false;
+let pinned: string | null = null;
 const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 function resetDeck() {
     decisions = [];
+    pinned = null;
     deckRows = [...rows].sort((a, b) => a.rank - b.rank);
     if (chooseOrder === 'shuffle') {
         for (let i = deckRows.length - 1; i > 0; i--) {
@@ -187,15 +190,54 @@ function resetDeck() {
 function availableCards() {
     if (deckSource !== rows) resetDeck();
     const done = new Set(decisions.map(d => d.person.name));
-    return deckRows.filter(p => p.name.startsWith(chooseInitial) && !selected.has(p.name) && !done.has(p.name));
+    const list = deckRows.filter(p => p.name.startsWith(chooseInitial) && !selected.has(p.name) && !done.has(p.name) && p.name !== pinned);
+    const pin = pinned ? deckRows.find(p => p.name === pinned) : undefined;
+    return pin ? [pin, ...list] : list;
 }
 function choosePage() {
     const t = messages[locale], w = swipeMessages[locale];
     const cards = availableCards();
     return `<section class="choose-page"><div class="page-title"><div><h1>${t.choose}</h1></div></div><p class="muted guidance">${w.guide}</p>
     <div class="choose-filter-panel panel"><button type="button" id="choose-filters-toggle" aria-expanded="${chooseFiltersOpen}" aria-controls="choose-filters"><strong>${w.filters}</strong><span>${year} · ${t[gender]} · ${chooseInitial || t.all} · ${chooseOrder === 'rank' ? w.rankOrder : w.shuffle}</span><span aria-hidden="true">${chooseFiltersOpen ? '−' : '+'}</span></button><div id="choose-filters" class="choose-controls ${chooseFiltersOpen ? 'is-open' : ''}"><label>${t.year}<input id="choose-year" type="number" min="${meta.years[0]}" max="${meta.years[1]}" step="1" value="${year}"></label><fieldset><legend>${t.gender}</legend><div class="segmented">${(['male', 'female'] as const).map(g => `<label><input type="radio" name="choose-gender" value="${g}" ${gender === g ? 'checked' : ''}><span>${t[g]}</span></label>`).join('')}</div></fieldset><label class="initial-control">${t.initial}<select id="choose-initial" title="${w.hint}">${['', ...'ABCDEFGHIJKLMNOPQRSTUVWXYZ'].map(l => `<option value="${l}" ${chooseInitial === l ? 'selected' : ''}>${l || t.all}</option>`).join('')}</select></label><label>${w.order}<select id="choose-order"><option value="rank" ${chooseOrder === 'rank' ? 'selected' : ''}>${w.rankOrder}</option><option value="shuffle" ${chooseOrder === 'shuffle' ? 'selected' : ''}>${w.shuffle}</option></select></label></div></div>
-    <div class="workspace swipe-workspace"><section class="swipe-stage" aria-label="${t.results}">${loading ? `<p class="status" role="status">${t.loading}</p>` : failed ? `<p role="alert">${t.error}</p><button id="retry">${t.retry}</button>` : cards.length ? `<div class="deck-meta"><span>${t.results}</span><span>${cards.length} ${w.remaining}</span></div><div class="swipe-stack">${cards.slice(0, 4).map((p, i) => `<article class="swipe-card ${i === 0 ? 'is-top' : 'is-behind'}" data-name="${esc(p.name)}" style="--depth:${i};z-index:${4 - i}" ${i ? 'aria-hidden="true" inert' : ''}><div class="card-topline"><span>${locale === 'zh' ? `${year} 年排名第 ${p.rank}` : `Rank #${p.rank} in ${year}`}</span><span>${t[p.gender]}</span></div><span class="stamp-keep" aria-hidden="true">${w.keep}</span><span class="stamp-skip" aria-hidden="true">${w.skip}</span><h2>${esc(p.name)}</h2><p class="card-occurrences">${p.occurrences.toLocaleString(locale)} ${w.occurrences}</p><button class="card-pronounce" data-speak="${esc(p.name)}" ${i ? 'tabindex="-1"' : ''} aria-label="${t.listen} ${esc(p.name)}">♪ <span>${t.hearIt}</span></button><div class="card-rule" aria-hidden="true">n.</div></article>`).join('')}</div>` : `<div id="deck-end" class="panel" role="status"><p class="eyebrow">${t.results}</p><h2>${w.end}</h2><p>${w.kept}: <strong>${decisions.filter(d => d.keep && selected.has(d.person.name)).length}</strong></p><button id="review-shortlist">${w.review}</button><button id="restart" class="primary">${w.restart}</button></div>`}
+    <div class="workspace swipe-workspace"><section class="swipe-stage" aria-label="${t.results}">${loading ? `<p class="status" role="status">${t.loading}</p>` : failed ? `<p role="alert">${t.error}</p><button id="retry">${t.retry}</button>` : cards.length ? `<div class="deck-meta"><span>${chooseOrder === 'rank' ? w.byRank : w.shuffled}</span><span>${cards.length} ${w.remaining}</span><button type="button" id="overview-open" class="overview-open"><span aria-hidden="true">▦</span> ${w.overview}</button></div><div class="swipe-stack">${cards.slice(0, 4).map((p, i) => `<article class="swipe-card ${i === 0 ? 'is-top' : 'is-behind'}" data-name="${esc(p.name)}" style="--depth:${i};z-index:${4 - i}" ${i ? 'aria-hidden="true" inert' : ''}><div class="card-topline"><span>${locale === 'zh' ? `${year} 年排名第 ${p.rank}` : `Rank #${p.rank} in ${year}`}</span><span>${t[p.gender]}</span></div><span class="stamp-keep" aria-hidden="true">${w.keep}</span><span class="stamp-skip" aria-hidden="true">${w.skip}</span><h2>${esc(p.name)}</h2><p class="card-occurrences">${p.occurrences.toLocaleString(locale)} ${w.occurrences}</p><button class="card-pronounce" data-speak="${esc(p.name)}" ${i ? 'tabindex="-1"' : ''} aria-label="${t.listen} ${esc(p.name)}">♪ <span>${t.hearIt}</span></button><div class="card-rule" aria-hidden="true">n.</div></article>`).join('')}</div>` : `<div id="deck-end" class="panel" role="status"><p class="eyebrow">${t.results}</p><h2>${w.end}</h2><p>${w.kept}: <strong>${decisions.filter(d => d.keep && selected.has(d.person.name)).length}</strong></p><button id="review-shortlist">${w.review}</button><button id="restart" class="primary">${w.restart}</button></div>`}
     <div class="swipe-actions"><button id="skip" ${!cards.length || loading || failed ? 'disabled' : ''}>← ${w.skip}</button><button id="play" ${!cards.length || loading || failed || !synth ? 'disabled' : ''}>♪ ${w.play}</button><button id="keep" class="primary" ${!cards.length || loading || failed ? 'disabled' : ''}>${w.keep} ♡</button><button id="undo" class="swipe-undo" ${!decisions.length ? 'disabled' : ''}>↶ ${w.undo}</button></div><p class="swipe-keys muted">${w.keys}</p></section><div id="choose-shortlist" tabindex="-1">${shortlist().replace(t.empty, w.empty)}${speechSettings()}</div></div></section>`;
+}
+let overviewEl: HTMLElement | null = null;
+function overviewNames() {
+    if (deckSource !== rows) resetDeck();
+    return deckRows.filter(p => p.name.startsWith(chooseInitial));
+}
+function openOverview() {
+    const names = overviewNames();
+    if (!names.length || overviewEl) return;
+    const w = swipeMessages[locale], mobile = window.innerWidth < 600;
+    const grid = buildRows(names, mobile ? 5 : 7, mobile ? 8 : 12);
+    const card = (p: Person) => `<button type="button" class="overview-card" data-name="${esc(p.name)}"><strong>${esc(p.name)}${selected.has(p.name) ? '<span class="overview-star" aria-label="★">★</span>' : ''}</strong><small>${locale === 'zh' ? `${year} 年第 ${p.rank} 名 · ${p.occurrences.toLocaleString(locale)} ${w.ovBirths}` : `#${p.rank} in ${year} · ${p.occurrences.toLocaleString(locale)} ${w.ovBirths}`}</small></button>`;
+    const el = document.createElement('div');
+    el.id = 'overview'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-modal', 'true'); el.setAttribute('aria-label', w.overviewTitle);
+    el.innerHTML = `<div class="overview-bar"><div><h2>${w.overviewTitle}</h2><p>${year} · ${messages[locale][gender]}${chooseInitial ? ` · ${chooseInitial}` : ''} · ${w.overviewHint}</p></div><button type="button" id="overview-close">← ${w.back}</button></div><div class="overview-stage"><div class="overview-plane">${grid.map((row, r) => `<div class="overview-row ${r % 2 ? 'is-alt' : ''}" style="--dur:${rowDuration(r)}s"><div class="overview-track"><div class="overview-set">${row.map(card).join('')}</div><div class="overview-set" aria-hidden="true">${row.map(card).join('')}</div></div></div>`).join('')}</div></div>`;
+    el.querySelectorAll<HTMLElement>('.overview-set[aria-hidden] button').forEach(b => b.tabIndex = -1);
+    document.body.append(el);
+    document.body.classList.add('overview-lock');
+    overviewEl = el;
+    requestAnimationFrame(() => el.classList.add('is-open'));
+    el.querySelector<HTMLElement>('#overview-close')!.onclick = () => closeOverview();
+    el.onclick = e => { const b = (e.target as HTMLElement).closest<HTMLElement>('.overview-card'); if (b) closeOverview(b.dataset.name!); };
+    el.querySelector<HTMLElement>('#overview-close')!.focus();
+}
+function closeOverview(name?: string) {
+    const el = overviewEl;
+    if (!el) return;
+    overviewEl = null;
+    document.body.classList.remove('overview-lock');
+    const done = () => {
+        el.remove();
+        if (name) { pinned = name; decisions = decisions.filter(d => d.person.name !== name); render(); }
+        document.getElementById('overview-open')?.focus();
+    };
+    if (reducedMotion()) { done(); return; }
+    el.classList.remove('is-open');
+    window.setTimeout(done, 300);
 }
 function decide(keep: boolean) {
     if (deciding || loading || failed || route() !== 'choose') return;
@@ -204,6 +246,7 @@ function decide(keep: boolean) {
     if (!person || !card) return;
     deciding = true;
     decisions.push({ person, keep });
+    if (person.name === pinned) pinned = null;
     if (keep) {
         selected.set(person.name, person);
         saveShortlist();
@@ -234,6 +277,7 @@ function bindSwipe() {
         document.getElementById('choose-filters-toggle')!.lastElementChild!.textContent = chooseFiltersOpen ? '−' : '+';
         document.getElementById('choose-filters')!.classList.toggle('is-open', chooseFiltersOpen);
     });
+    document.getElementById('overview-open')?.addEventListener('click', openOverview);
     document.getElementById('skip')?.addEventListener('click', () => decide(false));
     document.getElementById('keep')?.addEventListener('click', () => decide(true));
     document.getElementById('undo')?.addEventListener('click', undoDecision);
@@ -284,6 +328,7 @@ function bindSwipe() {
     card.onlostpointercapture = () => { if (drag) { drag = null; spring(); } };
 }
 window.addEventListener('keydown', e => {
+    if (overviewEl) { if (e.key === 'Escape') { e.preventDefault(); closeOverview(); } return; }
     if (route() !== 'choose' || (e.target instanceof HTMLElement && (e.target.closest('input,select,textarea,summary,#choose-filters-toggle,[contenteditable="true"]'))) || e.altKey || e.metaKey || e.repeat) return;
     if (e.key === 'Backspace' || e.key.toLowerCase() === 'u' || (e.ctrlKey && e.key.toLowerCase() === 'z')) { e.preventDefault(); undoDecision(); }
     else if (!e.ctrlKey && (e.key === 'ArrowRight' || e.key === 'ArrowLeft')) { e.preventDefault(); decide(e.key === 'ArrowRight'); }
@@ -368,7 +413,7 @@ function updateSpeech() {
 }
 synth?.addEventListener('voiceschanged', () => { voices = synth.getVoices(); updateSpeech(); });
 voices = synth?.getVoices() ?? [];
-window.addEventListener('hashchange', () => { shortlistOnly = false; ensureNames(); render(); });
+window.addEventListener('hashchange', () => { closeOverview(); shortlistOnly = false; ensureNames(); render(); });
 async function start() {
     failed = false;
     render();

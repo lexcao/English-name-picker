@@ -658,16 +658,19 @@ main:has(.choose-page) { padding-top:14px }
 .choose-filter-panel { padding:8px 12px; border-radius:12px }
 #choose-filters-toggle { display:none }
 .choose-page .eyebrow { margin-bottom:12px }
-.choose-controls { display:flex; align-items:center; gap:20px }
+.choose-controls { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); align-items:center; gap:24px }
 .choose-controls > label { flex:1; min-width:0; flex-direction:row; align-items:center; gap:8px; white-space:nowrap; font-size:.75rem }
-.choose-controls fieldset { display:flex; align-items:center; gap:8px }
+.choose-controls fieldset { display:flex; align-items:center; gap:8px; min-width:0; margin:0; padding:0; border:0 }
+.choose-controls fieldset .segmented { flex:1; display:flex }
+.choose-controls fieldset .segmented label { flex:1 }
+.choose-controls fieldset .segmented span { text-align:center }
 .choose-controls legend { float:left; margin:0 8px 0 0; font-size:.75rem; line-height:36px }
 .choose-controls input[type=number],.choose-controls select { min-height:36px; padding:6px 8px; width:100%; min-width:0 }
 .choose-controls .segmented { gap:4px }
 .choose-controls .segmented span { display:block; padding:8px 12px; font-size:.75rem }
 .swipe-workspace { grid-template-columns:minmax(0,1fr) 300px; gap:32px; margin-top:12px }
 .swipe-stage { min-width:0; text-align:center; padding:0 16px }
-.deck-meta { display:flex; justify-content:space-between; gap:8px; color:var(--muted); font-size:.7rem; line-height:16px; margin:0 auto 6px; max-width:600px }
+.deck-meta { display:flex; align-items:center; justify-content:space-between; gap:8px; color:var(--muted); font-size:.7rem; line-height:16px; margin:0 auto 6px; max-width:600px }
 .swipe-stack { position:relative; height:clamp(380px,calc(100svh - 420px),460px); max-width:600px; padding-bottom:24px; margin:0 auto 12px; isolation:isolate; box-sizing:content-box }
 .swipe-card { position:absolute; inset:0 0 24px; display:flex; align-items:center; flex-direction:column; justify-content:center; background:var(--panel); border:1px solid var(--line); border-radius:28px; padding:32px; box-shadow:0 15px 28px -20px var(--text); transform-origin:50% 75%; user-select:none; -webkit-user-select:none }
 .swipe-card.is-top { touch-action:none; cursor:grab; will-change:transform; }
@@ -728,4 +731,50 @@ main:has(.choose-page) { padding-top:14px }
 @media(prefers-reduced-motion:reduce) {
   .choose-page *, .choose-page *::before, .choose-page *::after { transition:none !important; animation:none !important; scroll-behavior:auto !important }
   .stamp-keep,.stamp-skip { transform:none }
+}
+
+/* Overview: tilted, drifting rows of name cards. */
+.overview-open { margin-left:12px; border:1px solid var(--line); background:var(--panel); color:var(--text); border-radius:999px; padding:4px 12px; min-height:28px; font-size:.72rem }
+.deck-meta > span:nth-child(2) { margin-left:auto }
+body.overview-lock { overflow:hidden }
+#overview { position:fixed; inset:0; z-index:50; background:var(--background); color:var(--text); opacity:0; transition:opacity .3s ease; overflow:hidden }
+#overview.is-open { opacity:1 }
+.overview-bar { position:absolute; z-index:2; inset:0 0 auto; display:flex; align-items:center; justify-content:space-between; gap:16px; padding:18px clamp(16px,4vw,48px); background:linear-gradient(var(--background) 55%,transparent) }
+.overview-bar h2 { font:500 1.5rem/1.2 Georgia,"Songti SC",serif; margin:0 }
+.overview-bar p { margin:4px 0 0; font-size:.75rem; color:var(--muted) }
+#overview-close { flex-shrink:0; border-radius:999px; padding:10px 18px; min-height:42px; background:var(--accent); color:var(--panel); border:0; font-size:.8rem }
+.overview-stage { position:absolute; inset:0; perspective:1400px; display:flex; align-items:center; justify-content:center;
+  -webkit-mask-image:radial-gradient(ellipse 75% 70% at 50% 52%,#000 55%,transparent 100%); mask-image:radial-gradient(ellipse 75% 70% at 50% 52%,#000 55%,transparent 100%) }
+.overview-plane { display:flex; flex-direction:column; gap:22px; transform:rotateX(18deg) rotateZ(-22deg) scale(1.45); transform-style:preserve-3d }
+.overview-row { display:flex; justify-content:center; width:100vw }
+.overview-track { display:flex; width:max-content; animation:overview-drift var(--dur,50s) linear infinite; will-change:transform }
+.overview-row.is-alt .overview-track { animation-direction:reverse }
+.overview-row:hover .overview-track { animation-play-state:paused }
+.overview-set { display:flex; gap:18px; padding-right:18px }
+.overview-card { display:flex; flex-direction:column; align-items:flex-start; gap:6px; flex-shrink:0; min-width:180px; padding:20px 26px; border-radius:20px; border:1px solid var(--line); background:var(--panel); color:var(--text); text-align:left; white-space:nowrap; box-shadow:0 14px 26px -22px var(--text); cursor:pointer; transition:transform .2s ease, border-color .2s ease }
+.overview-row.is-alt .overview-card { background:var(--soft) }
+.overview-card:hover,.overview-card:focus-visible { transform:translateY(-4px); border-color:var(--accent) }
+.overview-card strong { font:500 2rem/1.1 Georgia,"Songti SC",serif; letter-spacing:-.03em }
+.overview-card small { font-size:.72rem; color:var(--muted) }
+.overview-star { color:var(--accent); font-size:.9rem; margin-left:6px; vertical-align:super }
+@keyframes overview-drift { from { transform:translate3d(0,0,0) } to { transform:translate3d(-50%,0,0) } }
+@media(prefers-color-scheme:dark) {
+  .overview-card { background:#1f2a2e; border-color:#33424a }
+  .overview-row.is-alt .overview-card { background:#1f3a2b; border-color:#2f5240 }
+  #overview-close { color:#10180f }
+}
+@media(max-width:600px) {
+  .overview-plane { transform:rotateX(18deg) rotateZ(-22deg) scale(1.25); gap:18px }
+  .overview-card { min-width:150px; padding:18px 22px }
+  .overview-card strong { font-size:1.8rem }
+  .overview-bar h2 { font-size:1.15rem }
+  .overview-bar p { display:none }
+}
+@media(prefers-reduced-motion:reduce) {
+  .overview-track { animation:none }
+  #overview,.overview-card { transition:none }
+}
+@media(prefers-color-scheme:dark) {
+  .swipe-card,.overview-card { box-shadow:0 18px 30px -22px #000 }
+  .swipe-card.is-behind:nth-child(3) { background:var(--soft); opacity:.7 }
 }
