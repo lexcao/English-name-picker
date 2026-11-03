@@ -22,7 +22,7 @@ const messages = {
         results: 'The possibilities', selected: 'Your shortlist', empty: 'Tap a name to add it to your shortlist.', none: 'No names match this letter. Try another.', more: 'Load more', reset: 'Reset',
         speech: 'Pronunciation', enabled: 'Read names when selected', language: 'Speech language', voice: 'Voice', defaultVoice: 'Browser default', unsupported: 'Speech is unavailable in this browser.', noVoices: 'No installed voices yet. Your browser will try its default voice.',
         listen: 'Listen to', remove: 'Remove', rank: 'Rank', name: 'Name', count: 'Births', prev: 'Previous', next: 'Next', loading: 'Loading names…', error: 'Could not load local name data. Please try again.', retry: 'Try again',
-        handle: 'Try a social handle', handleHelp: 'Open a profile to check manually. A missing profile does not guarantee a handle is available; confirm on the platform.', handleLabel: 'Username', open: 'Open profile', invalid: 'Use 1–30 letters, numbers, underscores, or periods.', checkName: 'Check handle', saved: 'selected', data: 'Data: SSA, years', about: 'Top 1,000 names per year and category · National U.S. birth records', back: 'Back to names',
+        handleStep1: 'Type the handle you want, for example your English name + surname (alexchen).', handleStep2: 'Click “Check handle” to get profile links for each platform.', handleStep3: 'Open each link. If a profile page appears, the handle is taken. If it shows “not found”, it may be available; confirm on the platform’s sign-up page.', quickFill: 'Use a shortlisted name', handle: 'Try a social handle', handleHelp: 'Open a profile to check manually. A missing profile does not guarantee a handle is available; confirm on the platform.', handleLabel: 'Username', open: 'Open profile', invalid: 'Use 1–30 letters, numbers, underscores, or periods.', checkName: 'Check handle', saved: 'selected', data: 'Data: SSA, years', about: 'Top 1,000 names per year and category · National U.S. birth records', back: 'Back to names',
     },
     zh: {
         brand: '英文名挑选器', home: '首页', choose: '挑选名字', browser: '浏览名字', check: '社交账号',
@@ -32,7 +32,7 @@ const messages = {
         results: '名字灵感', selected: '我的候选名单', empty: '点击名字，将它加入候选名单。', none: '没有匹配的名字，请试试其他字母。', more: '加载更多', reset: '重置',
         speech: '发音设置', enabled: '选中名字时朗读', language: '朗读语言', voice: '朗读声音', defaultVoice: '浏览器默认', unsupported: '此浏览器不支持语音朗读。', noVoices: '暂无已安装的声音，浏览器将尝试默认声音。',
         listen: '朗读', remove: '移除', rank: '排名', name: '名字', count: '出生人数', prev: '上一页', next: '下一页', loading: '正在加载名字…', error: '无法加载本地名字数据，请重试。', retry: '重试',
-        handle: '试试社交账号名', handleHelp: '打开个人主页手动查看。主页不存在并不代表账号名可用，请在对应平台确认。', handleLabel: '账号名', open: '打开主页', invalid: '请输入 1–30 个字母、数字、下划线或句点。', checkName: '查看账号名', saved: '个已选', data: 'Data: SSA, years', about: '每年每类别前 1,000 名 · 美国全国出生记录', back: '返回名字列表',
+        handleStep1: '输入你想要的账号名，例如英文名 + 姓氏（alexchen）。', handleStep2: '点击“查看账号名”按钮，获取各个平台的个人主页链接。', handleStep3: '逐个打开链接：如果出现个人主页，说明账号名已被占用；如果显示“未找到”，则可能可用，但仍需在该平台的注册页面确认。', quickFill: '使用候选名单中的名字', handle: '试试社交账号名', handleHelp: '打开个人主页手动查看。主页不存在并不代表账号名可用，请在对应平台确认。', handleLabel: '账号名', open: '打开主页', invalid: '请输入 1–30 个字母、数字、下划线或句点。', checkName: '查看账号名', saved: '个已选', data: 'Data: SSA, years', about: '每年每类别前 1,000 名 · 美国全国出生记录', back: '返回名字列表',
     }
 };
 function read(key: string) { try {
@@ -57,6 +57,27 @@ let loading = false;
 let failed = false;
 let requestId = 0;
 const selected = new Map<string, Person>();
+try {
+    const stored: unknown = JSON.parse(read('shortlist') ?? '[]');
+    if (Array.isArray(stored)) {
+        for (const person of stored) {
+            if (person && typeof person.name === 'string' && person.name.trim() &&
+                (person.gender === 'male' || person.gender === 'female') &&
+                Number.isInteger(person.rank) && person.rank > 0 &&
+                Number.isInteger(person.occurrences) && person.occurrences >= 0) {
+                selected.set(person.name, { name: person.name, gender: person.gender, rank: person.rank, occurrences: person.occurrences });
+            }
+        }
+    }
+} catch { /* Ignore malformed saved shortlists. */ }
+function saveShortlist() {
+    save('shortlist', JSON.stringify([...selected.values()]));
+}
+let loadedKey = '';
+function ensureNames() {
+    if (meta && ['choose', 'browser'].includes(route()) && loadedKey !== `${year}-${gender}`)
+        void load();
+}
 const synth = 'speechSynthesis' in window ? window.speechSynthesis : null;
 let voices: SpeechSynthesisVoice[] = [];
 let speechEnabled = false;
@@ -85,6 +106,7 @@ async function json<T>(path: string): Promise<T> {
 }
 async function load() {
     const id = ++requestId;
+    loadedKey = `${year}-${gender}`;
     loading = true;
     failed = false;
     rows = [];
@@ -97,8 +119,10 @@ async function load() {
             rows = data;
     }
     catch {
-        if (id === requestId)
+        if (id === requestId) {
             failed = true;
+            loadedKey = '';
+        }
     }
     finally {
         if (id === requestId) {
@@ -141,7 +165,7 @@ function render() {
     const t = messages[locale], current = route();
     document.documentElement.lang = locale === 'zh' ? 'zh-CN' : 'en';
     document.title = `${t[current as 'choose'] || t.home} · ${t.brand}`;
-    app.innerHTML = `<header><a class="brand" href="#/"><span class="brand-icon" aria-hidden="true">n.</span>${t.brand}</a><button id="locale" class="locale" aria-label="${locale === 'en' ? '切换中文' : 'Switch to English'}">${locale === 'en' ? '中文' : 'English'}</button></header><nav aria-label="${t.brand}">${(['', 'choose', 'browser', 'check'] as const).map(r => `<a href="#/${r}" ${current === r ? 'aria-current="page"' : ''}>${r ? t[r] : t.home}</a>`).join('')}</nav><main>${!meta ? `<p role="${failed ? 'alert' : 'status'}">${failed ? t.error : t.loading}</p>${failed ? `<button id="retry-meta">${t.retry}</button>` : ''}` : current === '' ? `<section class="hero"><p class="eyebrow">${t.eyebrow}</p><h1>${t.title}</h1><p class="intro">${t.intro}</p><a class="primary" href="#/choose">${t.choose} <span aria-hidden="true">↗</span></a><div class="word-art" aria-hidden="true"><span>Oliver</span><span>Charlotte</span><span>James</span><span>Emma</span><span>You.</span></div></section><section class="method"><h2>${t.method}</h2><div class="steps">${(['one', 'two', 'three'] as const).map((key, i) => `<article><span class="step-number">0${i + 1}</span><h3>${t[key]}</h3><p>${t[`${key}Text`]}</p></article>`).join('')}</div></section>` : current === 'check' ? `<section class="panel check-panel"><p class="eyebrow">${t.check}</p><h1>${t.handle}</h1><p class="muted">${t.handleHelp}</p><form id="handle-form"><label>${t.handleLabel}<input id="handle" required pattern="[A-Za-z0-9_.]{1,30}" maxlength="30" value="${esc(handle)}" autocomplete="off" title="${t.invalid}"></label><button class="primary">${t.checkName}</button></form><div id="profile-links" aria-live="polite"></div></section>${shortlist()}` : `<div class="page-title"><div><p class="eyebrow">${current === 'choose' ? '01 — 02 — 03' : 'SSA / ' + year}</p><h1>${t[current as 'choose']}</h1></div><button id="reset">${t.reset}</button></div><p class="muted guidance">${t.oneText} ${t.twoText} ${t.threeText}</p><section class="panel">${form()}</section><div class="workspace"><section class="panel results"><div class="section-heading"><h2>${shortlistOnly ? t.selected : t.results}</h2>${current === 'choose' ? `<button id="show-selected">${shortlistOnly ? t.back : `${t.selected} (${selected.size})`}</button>` : ''}</div>${speechSettings()}${shortlistOnly ? shortlist() : `<fieldset class="letters"><legend>${t.initial}</legend><div>${['', ...'ABCDEFGHIJKLMNOPQRSTUVWXYZ'].map(l => `<button data-letter="${l}" aria-pressed="${initial === l}">${l || t.all}</button>`).join('')}</div></fieldset>${results(current === 'browser')}`}</section>${shortlist()}</div>`}</main>${meta ? `<footer><a href="${esc(meta.url)}" target="_blank" rel="noopener noreferrer">${t.data} ${meta.years[0]}–${meta.years[1]}</a><p>${t.about}</p></footer>` : ''}`;
+    app.innerHTML = `<header><a class="brand" href="#/"><span class="brand-icon" aria-hidden="true">n.</span>${t.brand}</a><button id="locale" class="locale" aria-label="${locale === 'en' ? '切换中文' : 'Switch to English'}">${locale === 'en' ? '中文' : 'English'}</button></header><nav aria-label="${t.brand}">${(['', 'choose', 'browser', 'check'] as const).map(r => `<a href="#/${r}" ${current === r ? 'aria-current="page"' : ''}>${r ? t[r] : t.home}</a>`).join('')}</nav><main>${!meta ? `<p role="${failed ? 'alert' : 'status'}">${failed ? t.error : t.loading}</p>${failed ? `<button id="retry-meta">${t.retry}</button>` : ''}` : current === '' ? `<section class="hero"><p class="eyebrow">${t.eyebrow}</p><h1>${t.title}</h1><p class="intro">${t.intro}</p><a class="primary" href="#/choose">${t.choose} <span aria-hidden="true">↗</span></a><div class="word-art" aria-hidden="true"><span>Oliver</span><span>Charlotte</span><span>James</span><span>Emma</span><span>You.</span></div></section><section class="method"><h2>${t.method}</h2><div class="steps">${(['one', 'two', 'three'] as const).map((key, i) => `<article><span class="step-number">0${i + 1}</span><h3>${t[key]}</h3><p>${t[`${key}Text`]}</p></article>`).join('')}</div></section>` : current === 'check' ? `<section class="panel check-panel"><p class="eyebrow">${t.check}</p><h1>${t.handle}</h1><ol class="handle-steps muted"><li>${t.handleStep1}</li><li>${t.handleStep2}</li><li>${t.handleStep3}</li></ol>${selected.size ? `<fieldset class="handle-shortlist"><legend>${t.quickFill}</legend><div>${[...selected.values()].map(p => `<button type="button" data-fill="${esc(p.name)}">${esc(p.name)}</button>`).join('')}</div></fieldset>` : ''}<form id="handle-form"><label>${t.handleLabel}<input id="handle" required pattern="[A-Za-z0-9_.]{1,30}" maxlength="30" value="${esc(handle)}" autocomplete="off" title="${t.invalid}"></label><button class="primary">${t.checkName}</button></form><div id="profile-links" aria-live="polite"></div></section>${shortlist()}` : `<div class="page-title"><div><p class="eyebrow">${current === 'choose' ? '01 — 02 — 03' : 'SSA / ' + year}</p><h1>${t[current as 'choose']}</h1></div><button id="reset">${t.reset}</button></div><p class="muted guidance">${t.oneText} ${t.twoText} ${t.threeText}</p><section class="panel">${form()}</section><div class="workspace"><section class="panel results"><div class="section-heading"><h2>${shortlistOnly ? t.selected : t.results}</h2>${current === 'choose' ? `<button id="show-selected">${shortlistOnly ? t.back : `${t.selected} (${selected.size})`}</button>` : ''}</div>${speechSettings()}${shortlistOnly ? shortlist() : `<fieldset class="letters"><legend>${t.initial}</legend><div>${['', ...'ABCDEFGHIJKLMNOPQRSTUVWXYZ'].map(l => `<button data-letter="${l}" aria-pressed="${initial === l}">${l || t.all}</button>`).join('')}</div></fieldset>${results(current === 'browser')}`}</section>${shortlist()}</div>`}</main>${meta ? `<footer><a href="${esc(meta.url)}" target="_blank" rel="noopener noreferrer">${t.data} ${meta.years[0]}–${meta.years[1]}</a><p>${t.about}</p></footer>` : ''}`;
     bind();
 }
 function bind() {
@@ -156,7 +180,7 @@ function bind() {
     on('next', () => { page++; render(); });
     on('first', () => { page = 0; render(); });
     on('last', () => { page = Math.ceil(rows.filter(p => p.name.startsWith(initial)).length / 10) - 1; render(); });
-    on('reset', () => { year = Math.min(2025, meta.years[1]); gender = 'male'; initial = ''; selected.clear(); shortlistOnly = false; void load(); });
+    on('reset', () => { year = Math.min(2025, meta.years[1]); gender = 'male'; initial = ''; selected.clear(); saveShortlist(); shortlistOnly = false; void load(); });
     on('show-selected', () => { shortlistOnly = !shortlistOnly; render(); });
     document.querySelectorAll<HTMLButtonElement>('[data-letter]').forEach(b => b.onclick = () => { initial = b.dataset.letter!; visible = 100; page = 0; render(); });
     document.querySelectorAll<HTMLButtonElement>('[data-select]').forEach(b => b.onclick = () => {
@@ -168,14 +192,22 @@ function bind() {
             if (speechEnabled)
                 speak(name);
         }
+        saveShortlist();
         render();
     });
-    document.querySelectorAll<HTMLButtonElement>('[data-remove]').forEach(b => b.onclick = () => { selected.delete(b.dataset.remove!); render(); });
+    document.querySelectorAll<HTMLButtonElement>('[data-remove]').forEach(b => b.onclick = () => { selected.delete(b.dataset.remove!); saveShortlist(); render(); });
     document.querySelectorAll<HTMLButtonElement>('[data-speak]').forEach(b => { b.disabled = !synth; b.onclick = () => speak(b.dataset.speak!); });
     document.querySelectorAll<HTMLButtonElement>('[data-handle]').forEach(b => b.onclick = () => { handle = b.dataset.handle!.toLowerCase(); location.hash = '/check'; if (route() === 'check') {
         render();
         profileLinks();
     } });
+    document.querySelectorAll<HTMLButtonElement>('[data-fill]').forEach(b => b.onclick = () => {
+        const input = document.getElementById('handle') as HTMLInputElement;
+        input.value = b.dataset.fill!.toLowerCase();
+        handle = '';
+        document.getElementById('profile-links')!.innerHTML = '';
+        input.focus();
+    });
     on('speech-enabled', e => { speechEnabled = (e.target as HTMLInputElement).checked; }, 'change');
     on('speech-lang', e => { speechLang = (e.target as HTMLSelectElement).value; voiceURI = ''; updateSpeech(); }, 'change');
     on('speech-voice', e => { voiceURI = (e.target as HTMLSelectElement).value; }, 'change');
@@ -206,14 +238,15 @@ function updateSpeech() {
 }
 synth?.addEventListener('voiceschanged', () => { voices = synth.getVoices(); updateSpeech(); });
 voices = synth?.getVoices() ?? [];
-window.addEventListener('hashchange', () => { shortlistOnly = false; render(); });
+window.addEventListener('hashchange', () => { shortlistOnly = false; ensureNames(); render(); });
 async function start() {
     failed = false;
     render();
     try {
         meta = await json<Meta>('data/meta.json');
         year = Math.max(meta.years[0], Math.min(2025, meta.years[1]));
-        await load();
+        ensureNames();
+        render();
     }
     catch {
         failed = true;
