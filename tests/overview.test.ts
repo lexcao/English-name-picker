@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { buildRows, rowDuration, wrap, inertiaStep, screenToPlaneDelta, isDrag } from '../src/overview.ts';
+import { buildRows, rowDuration, wrap, inertiaStep, screenToPlaneDelta, isDrag, nearestCenter } from '../src/overview.ts';
 test('empty input gives no rows', () => assert.deepEqual(buildRows([], 4, 8), []));
 test('fills rows sequentially', () => {
     const r = buildRows([...'abcdefghijkl'], 3, 4);
@@ -82,4 +82,17 @@ test('iOS decay is time independent and stops below five pixels per second', asy
     assert.ok(Math.abs(a.distance+b.distance-whole.distance)<1e-9);
     assert.ok(Math.abs(whole.velocity-1000*Math.pow(.998,100))<1e-9);
     assert.equal(decayStep(4,16).velocity,0);
+});
+
+test('nearest center uses both axes, preserves ties and handles empty input', () => {
+    const centers = [
+        { value: 'far', x: 100, y: 200 },
+        { value: 'nearest', x: 103, y: 104 },
+        { value: 'tied', x: 97, y: 96 },
+        { value: 'farther', x: 100, y: 106 },
+    ];
+    assert.equal(nearestCenter(centers, 100, 100), 'nearest');
+    assert.equal(nearestCenter([], 100, 100), undefined);
+    assert.equal(nearestCenter([{ value: 'only', x: -10, y: -20 }], 0, 0), 'only');
+    assert.deepEqual(centers.map(c => c.value), ['far', 'nearest', 'tied', 'farther']);
 });

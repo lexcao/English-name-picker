@@ -55,3 +55,13 @@ export function decayStep(velocity: number, dtMs: number) {
     const step = inertiaStep(velocity, Math.max(0, dtMs) / 1000, -1000 * Math.log(.998));
     return { distance: step.distance, velocity: Math.abs(step.velocity) < 5 ? 0 : step.velocity };
 }
+
+/** Pick the closest precomputed center in linear time; ties keep DOM order. */
+export function nearestCenter<T>(centers: readonly { value: T; x: number; y: number }[], x: number, y: number): T | undefined {
+    let nearest: T | undefined, best = Infinity;
+    for (const center of centers) {
+        const distance = (center.x - x) ** 2 + (center.y - y) ** 2;
+        if (distance < best) { best = distance; nearest = center.value; }
+    }
+    return nearest;
+}

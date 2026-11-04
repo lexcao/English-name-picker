@@ -804,7 +804,7 @@ body.overview-lock { overflow:hidden }
 .overview-drag-hint { position:absolute; z-index:3; bottom:32px; left:50%; transform:translateX(-50%); display:flex; align-items:center; gap:10px; padding:12px 20px; border-radius:999px; background:var(--text); color:var(--background); pointer-events:none; opacity:0; transition:opacity 200ms ease }
 .overview-drag-hint.is-visible { opacity:1 }
 .overview-morph { position:absolute; z-index:10; pointer-events:none; transform-origin:center; will-change:transform,opacity }
-#overview:not(.is-settled) .overview-card { pointer-events:none }
+#overview:not(.is-settled) .overview-plane { pointer-events:none }
 .overview-morph { overflow:hidden }
 .overview-morph-face { box-shadow:none!important; will-change:opacity,transform }
 .overview-morph-tile { background:transparent!important; box-shadow:none!important; border-color:transparent!important; will-change:opacity,transform }
