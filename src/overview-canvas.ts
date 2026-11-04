@@ -1,7 +1,8 @@
 import { decayStep, estimateVelocity, isDrag, rowDuration, screenToPlaneDelta, wrap, type MotionSample } from './overview';
 
 /** Owns one canvas session. All layout reads happen at setup/resize, never per frame. */
-export function startOverviewCanvas(el: HTMLElement, reduced: boolean, onDrag: () => void = () => {}) {
+/** `paused` sets up geometry and listeners without starting the frame loop (for a prebuilt, parked wall). */
+export function startOverviewCanvas(el: HTMLElement, reduced: boolean, onDrag: () => void = () => {}, paused = false) {
     const stage = el.querySelector<HTMLElement>('.overview-stage')!;
     const plane = el.querySelector<HTMLElement>('.overview-plane')!;
     const rows = [...plane.querySelectorAll<HTMLElement>('.overview-row')];
@@ -48,7 +49,7 @@ export function startOverviewCanvas(el: HTMLElement, reduced: boolean, onDrag: (
         const h = hintStart ? Math.min(1, (now - hintStart) / 900) : 0;
         draw(active && !reduced ? 40 * (1 - Math.cos(2 * Math.PI * h)) : 0); frame = requestAnimationFrame(tick);
     };
-    frame = requestAnimationFrame(tick);
+    if (!paused) frame = requestAnimationFrame(tick);
     stage.onpointerdown = e => {
         if (!active || pointer !== null || (e.pointerType === 'mouse' && e.button !== 0)) return;
         pointer = e.pointerId; dragged = false; startX = px = e.clientX; startY = py = e.clientY; samples = [{ x: 0, y: 0, time: e.timeStamp }];
@@ -95,6 +96,7 @@ export function startOverviewCanvas(el: HTMLElement, reduced: boolean, onDrag: (
     stage.addEventListener('wheel', wheel, { passive: false });
     return {
         setActive(value: boolean) { if (!value) { stopNudge(); draw(); } active = value; resume = performance.now(); vx = vy = 0; },
+        resume() { if (!frame) { last = performance.now(); frame = requestAnimationFrame(tick); } },
         nudge() { hintStart = performance.now(); },
         panBy(dx: number, dy: number) { x = wrap(x + dx, width); y = wrap(y + dy, height); draw(); },
         stop() {

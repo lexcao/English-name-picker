@@ -1143,3 +1143,7 @@ html[lang^="zh"] .choose-page .page-title h1 {
 
 /* Row-only variables: not inherited, so row reveal restyles never cascade into ~900 cards. */
 @property --d { syntax:"<number>"; inherits:false; initial-value:0 }
+
+/* Prebuilt wall: off-screen while it is built, then parked (layout kept, nothing painted or focusable). */
+#overview.is-pre { translate:-300vw 0 }
+#overview.is-parked { content-visibility:hidden }

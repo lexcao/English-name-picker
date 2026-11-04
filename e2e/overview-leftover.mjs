@@ -2,7 +2,7 @@ import { chromium, webkit } from 'playwright';
 const U=(process.argv[2]||'http://localhost:8766/English-name-picker/')+'#/choose'; const shot=process.argv[3];
 const b=process.env.BR==='webkit'?await webkit.launch():await chromium.launch({channel:'chrome'}); const res=[];
 const c=await b.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true,deviceScaleFactor:2,colorScheme:'dark',locale:'en-US'}); const p=await c.newPage();
-const check=async tag=>{ const r=await p.evaluate(()=>{const ov=document.getElementById('overview'); const morphs=document.querySelectorAll('.overview-morph').length;
+const check=async tag=>{ const r=await p.evaluate(()=>{const ov=document.querySelector('#overview:not(.is-pre)'); const morphs=document.querySelectorAll('.overview-morph').length;
   const vis=[...document.querySelectorAll(".overview-morph")].filter(m=>getComputedStyle(m).visibility!=="hidden").length;
   const bad=[...document.querySelectorAll('.overview-row .overview-card')].filter(e=>{const s=e.style;return (s.opacity&&s.opacity!=='1')||s.transform||e.classList.contains('is-focal')&&ov?.classList.contains('is-settled')&&false}).length;
   const rowsBad=[...document.querySelectorAll('.overview-row')].filter(r=>ov?.classList.contains('is-settled')&&getComputedStyle(r).translate!=='none'&&getComputedStyle(r).translate!=='0px'&&getComputedStyle(r).translate!=='0px 0px').length;
