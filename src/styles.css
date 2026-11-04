@@ -816,3 +816,142 @@ body.overview-lock { overflow:hidden }
 #overview.is-revealed .overview-row { opacity:1; translate:0 0; transition:opacity .4s cubic-bezier(.2,.8,.2,1) calc(var(--d,0) * .28s + .06s), translate .75s var(--spring) calc(var(--d,0) * .28s + .06s) }
 @media (prefers-reduced-motion:reduce){ .overview-row, #overview.is-revealed .overview-row { translate:none; transition:opacity .2s linear } }
 .overview-row.is-focal-row, #overview.is-revealed .overview-row.is-focal-row { translate:none }
+
+/* Editorial surfaces, scoped to the home and choose routes. Deck and camera
+   transforms, transitions and tint layers remain owned by the rules above. */
+body:has(.hero),body:has(.choose-page) {
+  --background:#f5f2e9;
+  --panel:#fcfaf4;
+  --text:#233b31;
+  --muted:#647167;
+  --line:#d7dacf;
+  --accent:#365f49;
+  --soft:#e6ebdf;
+}
+.hero { padding:12px 0 88px; overflow:visible; display:grid; grid-template-columns:minmax(0,1.65fr) minmax(0,1fr); column-gap:64px }
+.hero-colophon { grid-column:1/-1; display:flex; justify-content:space-between; gap:24px; border-bottom:1px solid var(--line); padding-bottom:18px; margin-bottom:54px; font-size:.68rem; line-height:1.6; letter-spacing:.12em; color:var(--muted) }
+.hero-colophon span:last-child { white-space:nowrap; letter-spacing:.08em }
+.hero h1 { grid-column:1; max-width:100%; font-size:clamp(3.5rem,6.4vw,6rem); line-height:1.04; letter-spacing:-.06em; text-wrap:balance; margin-bottom:28px }
+.hero .intro { grid-column:1; max-width:420px; font-size:1rem; line-height:1.9; margin-bottom:32px }
+.hero > .primary { grid-column:1; justify-self:start; border-radius:3px; min-height:52px; gap:40px; padding:15px 24px; font-size:.85rem }
+.word-art { position:relative; grid-column:2; grid-row:2/5; align-self:center; width:100%; top:auto; right:auto; gap:13px; transform:rotate(-7deg); padding:12px 0 }
+.word-art span { font-size:2.6rem; line-height:1.15; padding:10px 30px; background:transparent; border-color:var(--line); color:var(--muted) }
+.word-art span:nth-child(2n) { transform:translateX(16px); background:var(--soft) }
+.word-art span:last-child { font-size:3.5rem; padding:10px 38px; color:var(--accent); background:var(--panel) }
+.method { padding-top:24px; padding-bottom:24px }
+.method > h2 { font-size:.76rem; letter-spacing:.06em; font-weight:550; margin-bottom:36px }
+.steps { gap:0; margin-top:0 }
+.steps article { padding:0 32px; border-left:1px solid var(--line) }
+.steps article:first-child { padding-left:0; border-left:0 }
+.steps article:last-child { padding-right:0 }
+.step-number { font-size:3.5rem; line-height:1; margin-bottom:28px; letter-spacing:-.07em }
+.steps h3 { font-size:.98rem; font-weight:600; margin-bottom:12px }
+.steps p { font-size:.88rem; line-height:1.85; max-width:270px; margin-bottom:0 }
+main:has(.choose-page) { padding-top:28px }
+.choose-page { padding-top:8px }
+.choose-page .page-title h1 { font-family:Georgia,"Songti SC",serif; font-size:clamp(2.5rem,4vw,3.5rem); font-weight:500; line-height:1.12; letter-spacing:-.05em; margin-bottom:12px; text-wrap:balance }
+.choose-page .guidance { font-size:.85rem; line-height:1.7; margin-bottom:28px }
+.choose-filter-panel { background:transparent; border-width:1px 0; border-radius:0; padding:14px 0 }
+.choose-controls { gap:28px; grid-template-columns:1fr 1.35fr 1fr 1.2fr }
+.choose-controls > label,.choose-controls legend { font-size:.7rem; color:var(--muted) }
+.choose-controls input[type=number],.choose-controls select { border-color:transparent; border-radius:3px; background:transparent; color:var(--text); font-size:.8rem; min-height:40px }
+.choose-controls .segmented span { border-color:transparent; border-radius:3px; padding:11px 12px; font-size:.75rem }
+.choose-controls .segmented input:checked+span { border-color:var(--line) }
+.swipe-workspace { grid-template-columns:minmax(0,1fr) 268px; gap:48px; margin-top:24px }
+.swipe-stage { padding:0 20px }
+.deck-meta { font-size:.68rem; margin-bottom:14px; gap:12px }
+.choose-page .overview-open { background:transparent; border-radius:3px; margin-left:0; min-height:32px; font-size:.68rem }
+.choose-page .swipe-card { border-radius:8px; box-shadow:0 18px 36px -30px var(--text) }
+.choose-page .card-topline { inset:24px 28px auto; font-size:.7rem; letter-spacing:.025em; padding-bottom:16px; border-bottom:1px solid var(--line) }
+.choose-page .swipe-card h2 { font-size:clamp(3.5rem,7vw,6.5rem); line-height:1.08; letter-spacing:-.06em; margin:32px 0 18px }
+.choose-page .card-occurrences { font-size:.76rem; letter-spacing:.025em; margin-bottom:18px }
+.choose-page .card-pronounce { border-radius:50px; padding:10px 16px }
+.choose-page .card-rule { font-size:1.3rem; bottom:22px }
+.swipe-actions { gap:10px }
+.swipe-actions button { min-height:48px; border-radius:4px; padding:12px 20px; font-size:.76rem }
+.choose-page #keep { background:var(--accent); color:var(--panel); min-width:112px }
+.swipe-actions #skip { background:transparent }
+.swipe-actions .swipe-undo { border-color:transparent }
+.swipe-keys { margin-top:14px; font-size:.65rem; letter-spacing:.025em }
+#choose-shortlist .shortlist { margin-top:0; padding:4px 0 28px 24px }
+#choose-shortlist .section-heading { margin-bottom:22px }
+#choose-shortlist h2 { font-size:.78rem; font-weight:550; letter-spacing:.04em }
+#choose-shortlist .badge { background:transparent; padding:3px 0 3px 12px; border-left:1px solid var(--line); border-radius:0; font:italic 1.25rem Georgia,serif }
+#choose-shortlist .shortlist p { font-size:.82rem; line-height:1.9; max-width:210px }
+#choose-shortlist .name-speak { font:400 1.3rem Georgia,"Songti SC",serif; padding:12px 6px }
+#choose-shortlist .name-speak span { font-size:.85rem }
+#choose-shortlist .icon-button { background:transparent; font-size:1rem; min-height:40px }
+.choose-page .speech { border-top:1px solid var(--line); border-bottom:0; margin-top:24px; padding-top:20px; line-height:1.7 }
+.overview-bar { padding:24px clamp(20px,4vw,56px); box-shadow:none }
+.overview-bar h2 { font-size:1.8rem; letter-spacing:-.035em }
+.overview-bar p { margin-top:8px; font-size:.7rem; line-height:1.6 }
+#overview-close { border-radius:3px; min-height:44px; font-size:.75rem }
+.hero .primary,.choose-page button,#overview-close { transition:transform 180ms ease,opacity 180ms ease }
+.hero .primary span { transition:transform 180ms ease }
+@media(hover:hover) {
+  .hero .primary:hover span { transform:translate(3px,-3px) }
+  .choose-page .swipe-actions button:hover:not(:disabled),.choose-page .overview-open:hover { transform:translateY(-2px) }
+  #choose-shortlist .icon-button:hover { transform:translateY(-2px) }
+}
+.hero .primary:active,.choose-page button:active:not(:disabled),#overview-close:active { transform:scale(.97) }
+.hero a:focus-visible,.choose-page :is(button,input,select,summary):focus-visible,#overview-close:focus-visible { outline:2px solid var(--accent); outline-offset:4px }
+@media(max-width:900px) {
+  .hero { column-gap:28px; grid-template-columns:minmax(0,1.6fr) minmax(0,1fr) }
+  .word-art { display:flex }
+  .word-art span { font-size:2rem; padding:10px 18px }
+  .swipe-workspace { grid-template-columns:minmax(0,1fr); gap:36px }
+  #choose-shortlist .shortlist { border-width:1px 0 0; border-radius:0; padding:24px 0; background:transparent }
+  #choose-shortlist .shortlist p { max-width:420px }
+  .choose-controls.is-open { gap:20px; padding:18px 0 4px }
+}
+@media(max-width:600px) {
+  .hero { display:block; padding:8px 0 48px }
+  .hero-colophon { gap:16px; margin-bottom:34px; padding-bottom:16px; font-size:.58rem; letter-spacing:.06em }
+  .hero-colophon span:first-child { max-width:55% }
+  .hero h1 { font-size:clamp(3.1rem,12.8vw,4.6rem); line-height:1.08; margin-bottom:24px }
+  .hero .intro { font-size:.92rem; line-height:1.85; margin-bottom:28px }
+  .hero > .primary { min-height:50px; padding:14px 22px }
+  .word-art { display:none }
+  .method { padding-top:22px }
+  .method > h2 { font-size:.72rem; margin-bottom:28px }
+  .steps { gap:0 }
+  .steps article,.steps article:first-child,.steps article:last-child { position:relative; padding:24px 0 24px 64px; border-left:0; border-top:1px solid var(--line) }
+  .steps article:first-child { border-top:0; padding-top:0 }
+  .step-number { font-size:2.65rem; top:24px; margin:0 }
+  .steps article:first-child .step-number { top:0 }
+  .steps p { max-width:none; font-size:.84rem }
+  main:has(.choose-page) { padding-top:24px }
+  .choose-page .page-title h1 { font-size:2.5rem }
+  .choose-page .guidance { font-size:.78rem; margin-bottom:20px }
+  .choose-filter-panel { padding:8px 0 }
+  #choose-filters-toggle { min-height:44px; gap:12px }
+  .swipe-workspace { margin-top:18px; gap:32px }
+  .swipe-stage { padding:0 2px }
+  .deck-meta { gap:8px; font-size:.62rem; margin-bottom:12px }
+  .choose-page .overview-open { padding:5px 8px; font-size:.65rem }
+  .choose-page .swipe-card { padding:20px 18px; border-radius:6px }
+  .choose-page .card-topline { inset:20px 18px auto; font-size:.65rem; padding-bottom:14px }
+  .choose-page .swipe-card h2 { font-size:clamp(2.8rem,14vw,4.5rem); margin-top:36px; letter-spacing:-.055em }
+  .choose-page .card-occurrences { font-size:.72rem; margin-bottom:8px }
+  .swipe-actions { gap:6px }
+  .swipe-actions button { padding:11px 12px; font-size:.7rem; min-height:46px }
+  .choose-page #keep { min-width:86px }
+  .overview-bar { padding:18px 16px; gap:12px; align-items:flex-start }
+  .overview-bar h2 { font-size:1.35rem }
+  .overview-bar p { display:block; font-size:.65rem; max-width:190px }
+  #overview-close { padding:10px 12px; font-size:.68rem }
+}
+@media(prefers-color-scheme:dark) {
+  body:has(.hero),body:has(.choose-page) { --background:#18201c; --panel:#202b24; --text:#e9e8dc; --muted:#acb6a8; --line:#3c493f; --accent:#b4c8a1; --soft:#2e3e30 }
+  .hero > .primary { background:var(--accent); color:var(--background) }
+  .choose-page #keep,#overview-close { color:var(--background) }
+}
+@media(prefers-reduced-motion:reduce) {
+  .hero .primary,.hero .primary span,.choose-page button,#overview-close { transition:none }
+}
+/* ui-demo r2: keep CJK phrases intact, tighter choose header so the stack sits above the fold */
+.hero h1 { word-break:keep-all; overflow-wrap:anywhere }
+main:has(.choose-page) { padding-top:16px }
+.choose-page .page-title h1 { font-size:clamp(2.1rem,3vw,2.75rem); margin-bottom:6px }
+.choose-page .guidance { margin-bottom:16px }
+@media (min-width:761px) and (max-height:860px){ main:has(.choose-page){padding-top:6px} .choose-page .page-title h1{font-size:2rem;margin-bottom:2px} .choose-page .guidance{margin-bottom:8px} .choose-filter-panel{padding:6px 0} }
