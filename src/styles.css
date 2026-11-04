@@ -747,17 +747,15 @@ body.overview-lock { overflow:hidden }
   -webkit-mask-image:radial-gradient(ellipse 75% 70% at 50% 52%,#000 55%,transparent 100%); mask-image:radial-gradient(ellipse 75% 70% at 50% 52%,#000 55%,transparent 100%) }
 .overview-plane { --cw:236px; --gap:18px; display:flex; flex-direction:column; gap:var(--gap); flex-shrink:0; width:calc(var(--per) * (var(--cw) + var(--gap))); transform:rotateX(18deg) rotateZ(-22deg) scale(1.45); transform-style:preserve-3d }
 .overview-row { display:flex; justify-content:flex-start; width:100% }
-.overview-track { display:flex; width:max-content; animation:overview-drift var(--dur,50s) linear infinite; will-change:transform }
-.overview-row.is-alt .overview-track { animation-direction:reverse }
-.overview-row:hover .overview-track { animation-play-state:paused }
+.overview-track { display:flex; width:max-content; will-change:transform }
 .overview-set { display:flex; gap:var(--gap); padding-right:var(--gap) }
 .overview-card { display:flex; flex-direction:column; align-items:flex-start; gap:6px; flex-shrink:0; box-sizing:border-box; width:var(--cw); overflow:hidden; padding:20px 24px; border-radius:20px; border:1px solid var(--line); background:var(--panel); color:var(--text); text-align:left; white-space:nowrap; box-shadow:0 14px 26px -22px var(--text); cursor:pointer; transition:transform .2s ease, border-color .2s ease }
 .overview-row.is-alt .overview-card { background:var(--soft) }
-.overview-card:hover,.overview-card:focus-visible { transform:translateY(-4px); border-color:var(--accent) }
+.overview-card:focus-visible { transform:translateY(-4px); border-color:var(--accent) }
+@media(hover:hover){ .overview-stage:not(.is-dragging) .overview-card:hover { transform:translateY(-4px); border-color:var(--accent) } }
 .overview-card strong { font:500 2rem/1.1 Georgia,"Songti SC",serif; letter-spacing:-.03em }
 .overview-card small { font-size:.72rem; color:var(--muted) }
 .overview-star { color:var(--accent); font-size:.9rem; margin-left:6px; vertical-align:super }
-@keyframes overview-drift { from { transform:translate3d(0,0,0) } to { transform:translate3d(-50%,0,0) } }
 @media(prefers-color-scheme:dark) {
   .overview-card { background:#1f2a2e; border-color:#33424a }
   .overview-row.is-alt .overview-card { background:#1f3a2b; border-color:#2f5240 }
@@ -780,3 +778,13 @@ body.overview-lock { overflow:hidden }
 }
 .overview-card.is-long strong { font-size:1.55rem }
 .overview-card strong,.overview-card small { max-width:100%; overflow:hidden; text-overflow:ellipsis }
+
+/* Canvas geometry stays fixed; only composited transforms change each frame. */
+#overview { opacity:1; transition:none }
+.overview-stage { touch-action:none; cursor:grab; user-select:none; -webkit-user-select:none }
+.overview-stage.is-dragging { cursor:grabbing }
+.overview-plane { position:relative; display:block; transform-style:flat }
+.overview-row { position:absolute; top:50%; left:0; will-change:transform }
+.overview-track { animation:none; will-change:transform }
+.overview-card { transition:transform .2s ease }
+.overview-flight { will-change:transform,opacity }

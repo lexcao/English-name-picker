@@ -1,5 +1,6 @@
 import { buildRows, rowDuration } from './overview';
 import './styles.css';
+import { startOverviewCanvas } from './overview-canvas';
 type Person = {
     name: string;
     gender: 'male' | 'female';
@@ -163,8 +164,8 @@ function results(browse: boolean) {
     return `<div class="name-grid">${filtered.slice(0, visible).map(p => `<button class="name-card ${selected.has(p.name) ? 'is-selected' : ''}" data-select="${p.name}" aria-pressed="${selected.has(p.name)}"><span class="name-rank">#${p.rank}</span><strong>${p.name}</strong><span class="name-mark" aria-hidden="true">${selected.has(p.name) ? '✓' : '+'}</span></button>`).join('')}</div><button class="load-more" id="more" ${visible >= filtered.length ? 'disabled' : ''}>${t.more} · ${Math.min(visible, filtered.length)} / ${filtered.length}</button>`;
 }
 const swipeMessages = {
-    en: { hint: 'Your pinyin initial', order: 'Order', rankOrder: 'By rank', shuffle: 'Shuffle', keep: 'Keep', skip: 'Skip', undo: 'Undo', filters: 'Filters', play: 'Hear it', guide: 'Swipe left to skip, right to keep.', keys: '← Skip · → Keep · Space Listen · U Undo', end: 'A little closer to your name.', kept: 'Names kept this round', review: 'Review shortlist', restart: 'Restart', empty: 'Keep a name you love. It will be waiting here.', occurrences: 'births', remaining: 'names remaining', byRank: 'By popularity', shuffled: 'Shuffled', overview: 'Overview', overviewTitle: 'All names at a glance', overviewHint: 'Hover to pause · click a name to open it', back: 'Back to stack', ovBirths: 'births' },
-    zh: { hint: '你中文名拼音的首字母', order: '排序', rankOrder: '按排名', shuffle: '随机', keep: '收藏', skip: '跳过', undo: '撤销', filters: '筛选', play: '听发音', guide: '一次认识一个名字。向左跳过，向右收藏。', keys: '← 跳过 · → 收藏 · 空格 发音 · U 撤销', end: '离你的名字，又近了一步。', kept: '本轮收藏的名字', review: '查看候选名单', restart: '重新开始', empty: '收藏一个心动的名字，让它在这里等你。', occurrences: '人使用', remaining: '个名字待探索', byRank: '按热度排列', shuffled: '随机排列', overview: '全部浏览', overviewTitle: '一眼看完所有名字', overviewHint: '悬停暂停 · 点击名字查看', back: '返回卡片', ovBirths: '人' }
+    en: { hint: 'Your pinyin initial', order: 'Order', rankOrder: 'By rank', shuffle: 'Shuffle', keep: 'Keep', skip: 'Skip', undo: 'Undo', filters: 'Filters', play: 'Hear it', guide: 'Swipe left to skip, right to keep.', keys: '← Skip · → Keep · Space Listen · U Undo', end: 'A little closer to your name.', kept: 'Names kept this round', review: 'Review shortlist', restart: 'Restart', empty: 'Keep a name you love. It will be waiting here.', occurrences: 'births', remaining: 'names remaining', byRank: 'By popularity', shuffled: 'Shuffled', overview: 'Overview', overviewTitle: 'All names at a glance', overviewHint: 'Drag to explore · click a name to open it', back: 'Back to stack', ovBirths: 'births' },
+    zh: { hint: '你中文名拼音的首字母', order: '排序', rankOrder: '按排名', shuffle: '随机', keep: '收藏', skip: '跳过', undo: '撤销', filters: '筛选', play: '听发音', guide: '一次认识一个名字。向左跳过，向右收藏。', keys: '← 跳过 · → 收藏 · 空格 发音 · U 撤销', end: '离你的名字，又近了一步。', kept: '本轮收藏的名字', review: '查看候选名单', restart: '重新开始', empty: '收藏一个心动的名字，让它在这里等你。', occurrences: '人使用', remaining: '个名字待探索', byRank: '按热度排列', shuffled: '随机排列', overview: '全部浏览', overviewTitle: '一眼看完所有名字', overviewHint: '拖动浏览 · 点击名字查看', back: '返回卡片', ovBirths: '人' }
 };
 let chooseFiltersOpen = false;
 let chooseInitial = /^[A-Z]$/.test(read('choose-initial') ?? '') ? read('choose-initial')! : '';
@@ -203,6 +204,36 @@ function choosePage() {
     <div class="swipe-actions"><button id="skip" ${!cards.length || loading || failed ? 'disabled' : ''}>← ${w.skip}</button><button id="play" ${!cards.length || loading || failed || !synth ? 'disabled' : ''}>♪ ${w.play}</button><button id="keep" class="primary" ${!cards.length || loading || failed ? 'disabled' : ''}>${w.keep} ♡</button><button id="undo" class="swipe-undo" ${!decisions.length ? 'disabled' : ''}>↶ ${w.undo}</button></div><p class="swipe-keys muted">${w.keys}</p></section><div id="choose-shortlist" tabindex="-1">${shortlist().replace(t.empty, w.empty)}${speechSettings()}</div></div></section>`;
 }
 let overviewEl: HTMLElement | null = null;
+let overviewClosing = false;
+let stopOverviewCanvas: (() => void) | undefined;
+const overviewEase = 'cubic-bezier(0.32,0.72,0,1)';
+const flatPlane = 'rotateX(0deg) rotateZ(0deg) scale(1)';
+let overviewAnimations: Animation[] = [];
+function overviewAnimate(node: HTMLElement, frames: Keyframe[], duration: number, delay = 0) {
+    const animation = node.animate(frames, { duration, delay, easing: overviewEase, fill: 'both' });
+    overviewAnimations.push(animation);
+    return animation;
+}
+function visibleOverviewCard(el: HTMLElement, name?: string) {
+    return [...el.querySelectorAll<HTMLElement>('.overview-card')].find(card => {
+        if (name && card.dataset.name !== name) return false;
+        const r = card.getBoundingClientRect();
+        return r.left >= 0 && r.right <= innerWidth && r.top >= 90 && r.bottom <= innerHeight;
+    });
+}
+function flyOverviewCard(source: HTMLElement, from: DOMRect, to: DOMRect, opening: boolean) {
+    const clone = source.cloneNode(true) as HTMLElement;
+    clone.removeAttribute('id'); clone.setAttribute('aria-hidden', 'true'); clone.inert = true;
+    clone.classList.add('overview-flight');
+    Object.assign(clone.style, { position: 'fixed', inset: 'auto', left: `${from.x}px`, top: `${from.y}px`,
+        width: `${from.width}px`, height: `${from.height}px`, margin: '0', boxSizing: 'border-box',
+        zIndex: '100', transformOrigin: '0 0', pointerEvents: 'none' });
+    document.body.append(clone);
+    const transform = `translate(${to.x - from.x}px,${to.y - from.y}px) scale(${to.width / from.width},${to.height / from.height})`;
+    const animation = overviewAnimate(clone, [{ transform: 'none', opacity: opening ? 1 : .8 }, { transform, opacity: opening ? 0 : 1 }], 700);
+    void animation.finished.catch(() => {}).then(() => clone.remove());
+}
+
 function overviewNames() {
     if (deckSource !== rows) resetDeck();
     return deckRows.filter(p => p.name.startsWith(chooseInitial));
@@ -211,33 +242,83 @@ function openOverview() {
     const names = overviewNames();
     if (!names.length || overviewEl) return;
     const w = swipeMessages[locale], mobile = window.innerWidth < 600;
-    const perRow = mobile ? 10 : 14, grid = buildRows(names, mobile ? 9 : 11, perRow);
+    const span = Math.hypot(innerWidth, innerHeight) * 3;
+    const perRow = Math.max(mobile ? 10 : 14, Math.ceil(span / (mobile ? 212 : 254)));
+    const grid = buildRows(names, Math.max(12, Math.ceil(span / 110)), perRow);
+    const top = document.querySelector<HTMLElement>('.swipe-card.is-top');
     const card = (p: Person) => `<button type="button" class="overview-card${p.name.length > 9 ? ' is-long' : ''}" data-name="${esc(p.name)}"><strong>${esc(p.name)}${selected.has(p.name) ? '<span class="overview-star" aria-label="★">★</span>' : ''}</strong><small>${locale === 'zh' ? `${year} 年第 ${p.rank} 名 · ${p.occurrences.toLocaleString(locale)} ${w.ovBirths}` : `#${p.rank} in ${year} · ${p.occurrences.toLocaleString(locale)} ${w.ovBirths}`}</small></button>`;
     const el = document.createElement('div');
     el.id = 'overview'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-modal', 'true'); el.setAttribute('aria-label', w.overviewTitle);
-    el.innerHTML = `<div class="overview-bar"><div><h2>${w.overviewTitle}</h2><p>${year} · ${messages[locale][gender]}${chooseInitial ? ` · ${chooseInitial}` : ''} · ${w.overviewHint}</p></div><button type="button" id="overview-close">← ${w.back}</button></div><div class="overview-stage"><div class="overview-plane" style="--per:${perRow}">${grid.map((row, r) => `<div class="overview-row ${r % 2 ? 'is-alt' : ''}" style="--dur:${rowDuration(r)}s"><div class="overview-track"><div class="overview-set">${row.map(card).join('')}</div><div class="overview-set" aria-hidden="true">${row.map(card).join('')}</div></div></div>`).join('')}</div></div>`;
+    el.innerHTML = `<div class="overview-bar"><div><h2>${w.overviewTitle}</h2><p>${year} · ${messages[locale][gender]}${chooseInitial ? ` · ${chooseInitial}` : ''} · ${w.overviewHint}</p></div><button type="button" id="overview-close">← ${w.back}</button></div><div class="overview-stage"><div class="overview-plane" style="--per:${perRow}">${grid.map((row, r) => `<div class="overview-row ${r % 2 ? 'is-alt' : ''}" style="--dur:${rowDuration(r)}s"><div class="overview-track"><div class="overview-set">${row.map(card).join('')}</div><div class="overview-set" aria-hidden="true">${row.map(card).join('')}</div><div class="overview-set" aria-hidden="true">${row.map(card).join('')}</div></div></div>`).join('')}</div></div>`;
     el.querySelectorAll<HTMLElement>('.overview-set[aria-hidden] button').forEach(b => b.tabIndex = -1);
     document.body.append(el);
     document.body.classList.add('overview-lock');
     overviewEl = el;
-    requestAnimationFrame(() => el.classList.add('is-open'));
+    overviewClosing = false;
+    overviewAnimations = [];
+    stopOverviewCanvas = startOverviewCanvas(el, reducedMotion());
+    const plane = el.querySelector<HTMLElement>('.overview-plane')!;
+    const tilted = getComputedStyle(plane).transform;
+    if (reducedMotion()) {
+        overviewAnimate(el, [{ opacity: 0 }, { opacity: 1 }], 200);
+    } else {
+        if (top) {
+            const target = visibleOverviewCard(el, top.dataset.name)?.getBoundingClientRect()
+                ?? new DOMRect(innerWidth / 2 - 60, innerHeight / 2 - 40, 120, 80);
+            flyOverviewCard(top, top.getBoundingClientRect(), target, true);
+        }
+        overviewAnimate(el, [{ opacity: 0 }, { opacity: 1 }], 700);
+        overviewAnimate(plane, [{ transform: flatPlane, opacity: 0 }, { transform: tilted, opacity: 1 }], 700);
+        el.querySelectorAll<HTMLElement>('.overview-track').forEach((track, i) => {
+            // Animate a wrapper, leaving track transforms exclusively owned by the canvas.
+            const sets = [...track.children] as HTMLElement[];
+            sets.forEach(set => overviewAnimate(set, [{ opacity: 0, transform: 'translateY(24px)' }, { opacity: 1, transform: 'translateY(0)' }], 500, Math.min(i, 10) * 30));
+        });
+        overviewAnimate(el.querySelector<HTMLElement>('.overview-bar')!, [{ opacity: 0 }, { opacity: 1 }], 500, 150);
+    }
     el.querySelector<HTMLElement>('#overview-close')!.onclick = () => closeOverview();
-    el.onclick = e => { const b = (e.target as HTMLElement).closest<HTMLElement>('.overview-card'); if (b) closeOverview(b.dataset.name!); };
+    el.onclick = e => { const b = (e.target as HTMLElement).closest<HTMLElement>('.overview-card'); if (b) closeOverview(b.dataset.name!, b); };
     el.querySelector<HTMLElement>('#overview-close')!.focus();
 }
-function closeOverview(name?: string) {
+function closeOverview(name?: string, clicked?: HTMLElement) {
     const el = overviewEl;
-    if (!el) return;
-    overviewEl = null;
-    document.body.classList.remove('overview-lock');
-    const done = () => {
-        el.remove();
-        if (name) { pinned = name; decisions = decisions.filter(d => d.person.name !== name); render(); }
+    if (!el || overviewClosing) return;
+    overviewClosing = true;
+    stopOverviewCanvas?.(); stopOverviewCanvas = undefined;
+    const plane = el.querySelector<HTMLElement>('.overview-plane')!;
+    const currentTransform = getComputedStyle(plane).transform;
+    const opacity = getComputedStyle(el).opacity;
+    const source = clicked ?? visibleOverviewCard(el);
+    const from = source?.getBoundingClientRect();
+    overviewAnimations.forEach(animation => animation.cancel());
+    overviewAnimations = [];
+    if (name) { pinned = name; decisions = decisions.filter(d => d.person.name !== name); render(); }
+    const top = document.querySelector<HTMLElement>('.swipe-card.is-top');
+    if (!reducedMotion() && top) {
+        const target = top.getBoundingClientRect();
+        const start = from ?? new DOMRect(innerWidth / 2 - 60, innerHeight / 2 - 40, 120, 80);
+        if (source) flyOverviewCard(source, start, target, true);
+        // The real stack card grows out of the clicked tile, so the landing frame is pixel-identical to the stack.
+        const land = top.cloneNode(true) as HTMLElement;
+        land.removeAttribute('id'); land.setAttribute('aria-hidden', 'true'); land.inert = true;
+        Object.assign(land.style, { position: 'fixed', left: `${target.x}px`, top: `${target.y}px`, width: `${target.width}px`, height: `${target.height}px`,
+            margin: '0', zIndex: '101', transformOrigin: '0 0', pointerEvents: 'none' });
+        document.body.append(land); top.style.visibility = 'hidden';
+        const inv = `translate(${start.x - target.x}px,${start.y - target.y}px) scale(${start.width / target.width},${start.height / target.height})`;
+        const a = overviewAnimate(land, [{ transform: inv, opacity: 0 }, { opacity: 1, offset: .45 }, { transform: 'none', opacity: 1 }], 700);
+        void a.finished.catch(() => {}).then(() => { land.remove(); top.style.visibility = ''; });
+    }
+    if (!reducedMotion()) {
+        overviewAnimate(plane, [{ transform: currentTransform, opacity: 1 }, { transform: flatPlane, opacity: 0 }], 700);
+        overviewAnimate(el.querySelector<HTMLElement>('.overview-bar')!, [{ opacity: 1 }, { opacity: 0 }], 300);
+    }
+    const fade = overviewAnimate(el, [{ opacity }, { opacity: 0 }], reducedMotion() ? 200 : 700);
+    void fade.finished.then(() => {
+        el.remove(); overviewEl = null; overviewClosing = false;
+        overviewAnimations.forEach(animation => animation.cancel()); overviewAnimations = [];
+        document.body.classList.remove('overview-lock');
         document.getElementById('overview-open')?.focus();
-    };
-    if (reducedMotion()) { done(); return; }
-    el.classList.remove('is-open');
-    window.setTimeout(done, 300);
+    });
 }
 function decide(keep: boolean) {
     if (deciding || loading || failed || route() !== 'choose') return;
