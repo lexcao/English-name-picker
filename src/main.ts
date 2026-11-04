@@ -323,6 +323,7 @@ function runCamera() {
             overviewCanvas?.stop(); overviewCanvas=undefined; overviewEl.remove(); overviewEl=null; camera=undefined;
             document.body.classList.remove('overview-lock');
             document.querySelectorAll<HTMLElement>('main,.swipe-stack').forEach(node => { node.style.transform=''; node.style.opacity=''; node.style.visibility=''; });
+            if (pendingRender) { 'requestIdleCallback' in window ? requestIdleCallback(flushRender, { timeout: 400 }) : setTimeout(flushRender, 200); }
             document.getElementById('overview-open')?.focus();
         } else {
             overviewCanvas?.setActive(true);
@@ -379,6 +380,15 @@ function openOverview() {
     el.onclick = e => { const b = (e.target as HTMLElement).closest<HTMLElement>('.overview-card'); if (b) closeOverview(b.dataset.name!, b); };
     el.querySelector<HTMLElement>('#overview-close')!.focus();
 }
+/** Card-click close: swap in only the stack (what the morph measures); the full render() waits until the camera lands. */
+let pendingRender = false;
+function swapStack() {
+    const tpl = document.createElement('template'); tpl.innerHTML = choosePage();
+    for (const sel of ['.swipe-stack', '.deck-meta']) { const next = tpl.content.querySelector(sel), cur = document.querySelector(sel); if (next && cur) cur.replaceWith(next); }
+    document.getElementById('overview-open')?.addEventListener('click', openOverview);
+    pendingRender = true;
+}
+function flushRender() { if (pendingRender) { pendingRender = false; if (!overviewEl) { const f = document.activeElement?.id; render(); if (f) document.getElementById(f)?.focus(); } } }
 function closeOverview(name?: string, clicked?: HTMLElement) {
     if (!overviewEl || !camera) return;
     hideDragHint(); overviewCanvas?.setActive(false);
@@ -389,7 +399,7 @@ function closeOverview(name?: string, clicked?: HTMLElement) {
         // the morph carries the top name's face, so the stack it returns to still matches.
         const focal = clicked ?? visibleOverviewCard(overviewEl);
         const source = clicked ?? overviewEl.querySelector<HTMLElement>(`.overview-card[data-name="${CSS.escape(availableCards()[0]?.name ?? '')}"]`) ?? focal;
-        if (name) { pinned=name; decisions=decisions.filter(d => d.person.name!==name); render(); }
+        if (name) { pinned=name; decisions=decisions.filter(d => d.person.name!==name); swapStack(); }
         measureCamera(focal, source);
     }
     overviewEl.classList.remove('is-settled', 'is-revealed');
@@ -507,7 +517,7 @@ window.addEventListener('keydown', e => {
     else if (!e.ctrlKey && e.code === 'Space') { e.preventDefault(); const p = availableCards()[0]; if (p) speak(p.name); }
 });
 function render() {
-    deciding = false;
+    deciding = false; pendingRender = false;
     const t = messages[locale], current = route();
     document.documentElement.lang = locale === 'zh' ? 'zh-CN' : 'en';
     document.title = `${t[current as 'choose'] || t.home} · ${t.brand}`;

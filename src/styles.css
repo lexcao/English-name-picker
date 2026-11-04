@@ -804,7 +804,8 @@ body.overview-lock { overflow:hidden }
 .overview-drag-hint { position:absolute; z-index:3; bottom:32px; left:50%; transform:translateX(-50%); display:flex; align-items:center; gap:10px; padding:12px 20px; border-radius:999px; background:var(--text); color:var(--background); pointer-events:none; opacity:0; transition:opacity 200ms ease }
 .overview-drag-hint.is-visible { opacity:1 }
 .overview-morph { position:absolute; z-index:10; pointer-events:none; transform-origin:center; will-change:transform,opacity }
-#overview:not(.is-settled) .overview-plane { pointer-events:none }
+/* pointer-events is inherited: toggling it restyles every card. A non-inherited shield inside the plane blocks clicks instead. */
+#overview:not(.is-settled) .overview-plane::after { content:''; position:absolute; inset:-100vmax; z-index:20 }
 .overview-morph { overflow:hidden }
 .overview-morph-face { box-shadow:none!important; will-change:opacity,transform }
 .overview-morph-tile { background:transparent!important; box-shadow:none!important; border-color:transparent!important; will-change:opacity,transform }
@@ -1139,3 +1140,6 @@ html[lang^="zh"] .choose-page .page-title h1 {
 @media (max-width:600px) {
   .choose-page .swipe-card h2 { font-size:clamp(2rem,11vw,4rem) }
 }
+
+/* Row-only variables: not inherited, so row reveal restyles never cascade into ~900 cards. */
+@property --d { syntax:"<number>"; inherits:false; initial-value:0 }
