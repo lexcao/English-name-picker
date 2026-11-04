@@ -1,5 +1,6 @@
-import { buildRows, rowDuration } from './overview';
+import { buildRows, rowDuration, lerp, smoothstep, springStep } from './overview';
 import './styles.css';
+import { startOverviewCanvas } from './overview-canvas';
 type Person = {
     name: string;
     gender: 'male' | 'female';
@@ -163,8 +164,8 @@ function results(browse: boolean) {
     return `<div class="name-grid">${filtered.slice(0, visible).map(p => `<button class="name-card ${selected.has(p.name) ? 'is-selected' : ''}" data-select="${p.name}" aria-pressed="${selected.has(p.name)}"><span class="name-rank">#${p.rank}</span><strong>${p.name}</strong><span class="name-mark" aria-hidden="true">${selected.has(p.name) ? '✓' : '+'}</span></button>`).join('')}</div><button class="load-more" id="more" ${visible >= filtered.length ? 'disabled' : ''}>${t.more} · ${Math.min(visible, filtered.length)} / ${filtered.length}</button>`;
 }
 const swipeMessages = {
-    en: { hint: 'Your pinyin initial', order: 'Order', rankOrder: 'By rank', shuffle: 'Shuffle', keep: 'Keep', skip: 'Skip', undo: 'Undo', filters: 'Filters', play: 'Hear it', guide: 'Swipe left to skip, right to keep.', keys: '← Skip · → Keep · Space Listen · U Undo', end: 'A little closer to your name.', kept: 'Names kept this round', review: 'Review shortlist', restart: 'Restart', empty: 'Keep a name you love. It will be waiting here.', occurrences: 'births', remaining: 'names remaining', byRank: 'By popularity', shuffled: 'Shuffled', overview: 'Overview', overviewTitle: 'All names at a glance', overviewHint: 'Hover to pause · click a name to open it', back: 'Back to stack', ovBirths: 'births' },
-    zh: { hint: '你中文名拼音的首字母', order: '排序', rankOrder: '按排名', shuffle: '随机', keep: '收藏', skip: '跳过', undo: '撤销', filters: '筛选', play: '听发音', guide: '一次认识一个名字。向左跳过，向右收藏。', keys: '← 跳过 · → 收藏 · 空格 发音 · U 撤销', end: '离你的名字，又近了一步。', kept: '本轮收藏的名字', review: '查看候选名单', restart: '重新开始', empty: '收藏一个心动的名字，让它在这里等你。', occurrences: '人使用', remaining: '个名字待探索', byRank: '按热度排列', shuffled: '随机排列', overview: '全部浏览', overviewTitle: '一眼看完所有名字', overviewHint: '悬停暂停 · 点击名字查看', back: '返回卡片', ovBirths: '人' }
+    en: { hint: 'Your pinyin initial', order: 'Order', rankOrder: 'By rank', shuffle: 'Shuffle', keep: 'Keep', skip: 'Skip', undo: 'Undo', filters: 'Filters', play: 'Hear it', guide: 'Swipe left to skip, right to keep.', keys: '← Skip · → Keep · Space Listen · U Undo', end: 'A little closer to your name.', kept: 'Names kept this round', review: 'Review shortlist', restart: 'Restart', empty: 'Keep a name you love. It will be waiting here.', occurrences: 'births', remaining: 'names remaining', byRank: 'By popularity', shuffled: 'Shuffled', overview: 'Overview', overviewTitle: 'All names at a glance', overviewHint: 'Drag to explore · click a name to open it', back: 'Back to stack', ovBirths: 'births' },
+    zh: { hint: '你中文名拼音的首字母', order: '排序', rankOrder: '按排名', shuffle: '随机', keep: '收藏', skip: '跳过', undo: '撤销', filters: '筛选', play: '听发音', guide: '一次认识一个名字。向左跳过，向右收藏。', keys: '← 跳过 · → 收藏 · 空格 发音 · U 撤销', end: '离你的名字，又近了一步。', kept: '本轮收藏的名字', review: '查看候选名单', restart: '重新开始', empty: '收藏一个心动的名字，让它在这里等你。', occurrences: '人使用', remaining: '个名字待探索', byRank: '按热度排列', shuffled: '随机排列', overview: '全部浏览', overviewTitle: '一眼看完所有名字', overviewHint: '拖动浏览 · 点击名字查看', back: '返回卡片', ovBirths: '人' }
 };
 let chooseFiltersOpen = false;
 let chooseInitial = /^[A-Z]$/.test(read('choose-initial') ?? '') ? read('choose-initial')! : '';
@@ -203,41 +204,161 @@ function choosePage() {
     <div class="swipe-actions"><button id="skip" ${!cards.length || loading || failed ? 'disabled' : ''}>← ${w.skip}</button><button id="play" ${!cards.length || loading || failed || !synth ? 'disabled' : ''}>♪ ${w.play}</button><button id="keep" class="primary" ${!cards.length || loading || failed ? 'disabled' : ''}>${w.keep} ♡</button><button id="undo" class="swipe-undo" ${!decisions.length ? 'disabled' : ''}>↶ ${w.undo}</button></div><p class="swipe-keys muted">${w.keys}</p></section><div id="choose-shortlist" tabindex="-1">${shortlist().replace(t.empty, w.empty)}${speechSettings()}</div></div></section>`;
 }
 let overviewEl: HTMLElement | null = null;
+let overviewCanvas: ReturnType<typeof startOverviewCanvas> | undefined;
+let camera: { p: number; velocity: number; target: number; frame: number; last: number; focal: HTMLElement; morph: HTMLElement; cx: number; cy: number; tx: number; ty: number; s0: number; width: number; height: number; sx: number; sy: number } | undefined;
+let hintTimer = 0;
+function visibleOverviewCard(el: HTMLElement, name?: string): HTMLElement {
+    const cards = [...el.querySelectorAll<HTMLElement>('.overview-card')];
+    const matches = cards.filter(card => card.dataset.name === name);
+    return (matches.length ? matches : cards).sort((a, b) => {
+        const distance = (card: HTMLElement) => { const r = card.getBoundingClientRect(); return Math.hypot(r.x + r.width / 2 - innerWidth / 2, r.y + r.height / 2 - innerHeight / 2); };
+        return distance(a) - distance(b);
+    })[0];
+}
+function hideDragHint() {
+    clearTimeout(hintTimer);
+    overviewEl?.querySelector<HTMLElement>('.overview-drag-hint')?.classList.remove('is-visible');
+}
+function measureCamera(focal: HTMLElement) {
+    const el = overviewEl!, plane = el.querySelector<HTMLElement>('.overview-plane')!;
+    const top = document.querySelector<HTMLElement>('.swipe-card.is-top')!;
+    camera?.morph.remove(); camera?.focal.classList.remove('is-focal'); if (camera) camera.focal.style.opacity = '';
+    // Measure both endpoints at rest. These temporary writes are restored before paint.
+    const main = document.querySelector<HTMLElement>('main')!;
+    main.style.transform = ''; main.style.opacity = '';
+    const S = top.getBoundingClientRect();
+    plane.style.transform = 'scale(1)';
+    const P = plane.getBoundingClientRect(), C = focal.getBoundingClientRect();
+    const cx = C.x + C.width / 2 - P.x - P.width / 2, cy = C.y + C.height / 2 - P.y - P.height / 2;
+    const s0 = S.width / C.width;
+    const morph = document.createElement('div');
+    const face = top.cloneNode(true) as HTMLElement;
+    Object.assign(face.style, { position: 'absolute', inset: '0 auto auto 0', margin: '0', width: `${S.width}px`, height: `${S.height}px`, maxWidth: 'none', transform: `scale(${1/s0})`, transformOrigin: '0 0', visibility: 'visible' });
+    face.classList.add('overview-morph-face'); face.classList.remove('is-top');
+    // One surface, one moving element. Its two text layers never overlap in time: the stack text leaves, then a
+    // clone of the wall tile's text arrives, so at p=1 the morph is pixel-identical to the focal tile and swaps in one frame.
+    const tile = focal.cloneNode(true) as HTMLElement;
+    tile.classList.add('overview-morph-tile'); tile.classList.remove('is-focal');
+    Object.assign(tile.style, { position: 'absolute', left: '50%', top: '50%', margin: '0', width: `${C.width}px`, height: `${C.height}px`, opacity: '0' });
+    const cs = getComputedStyle(focal);
+    Object.assign(morph.style, { background: cs.backgroundColor, borderRadius: cs.borderRadius, boxShadow: cs.boxShadow });
+    morph.append(face, tile);
+    // Neighbours reveal outward from the focal card on the same timeline.
+    const FX = C.x + C.width/2, FY = C.y + C.height/2;
+    el.querySelectorAll<HTMLElement>('.overview-card').forEach(card => { const r = card.getBoundingClientRect();
+        card.style.setProperty('--d', String(Math.min(1, Math.hypot(r.x + r.width/2 - FX, r.y + r.height/2 - FY) / (C.width * 3)))); });
+    morph.classList.add('overview-morph'); morph.inert = true; morph.setAttribute('aria-hidden', 'true');
+    Object.assign(morph.style, { left: `${P.width / 2 + cx}px`, top: `${P.height / 2 + cy}px`, width: `${S.width / s0}px`, height: `${S.height / s0}px` });
+    plane.append(morph); focal.classList.add('is-focal');
+    const old = camera;
+    camera = { p: old?.p ?? 0, velocity: old?.velocity ?? 0, target: old?.target ?? 1, frame: old?.frame ?? 0, last: performance.now(), focal, morph, cx, cy,
+        tx: S.x + S.width / 2 - (P.x + P.width / 2) - s0 * cx,
+        ty: S.y + S.height / 2 - (P.y + P.height / 2) - s0 * cy,
+        s0, width: C.width, height: C.height, sx: C.width / (S.width / s0), sy: C.height / (S.height / s0) };
+    top.closest<HTMLElement>('.swipe-stack')!.style.visibility = reducedMotion() ? '' : 'hidden';
+}
+function drawCamera() {
+    if (!camera || !overviewEl) return;
+    const c = camera, p = c.p, reduced = reducedMotion();
+    const plane = overviewEl.querySelector<HTMLElement>('.overview-plane')!;
+    plane.style.transform = reduced ? '' : `translate(${c.tx * (1-p)}px,${c.ty * (1-p)}px) rotateX(${18*p}deg) rotateZ(${-22*p}deg) scale(${lerp(c.s0, innerWidth < 600 ? 1.25 : 1.45, p)})`;
+    overviewEl.style.opacity = reduced ? String(p) : '1';
+    const fade = reduced ? 1 : smoothstep(.1, .6, p);
+    overviewEl.querySelector<HTMLElement>('.overview-background')!.style.opacity = String(fade);
+    overviewEl.querySelector<HTMLElement>('.overview-bar')!.style.opacity = String(smoothstep(.4, .9, p));
+    overviewEl.style.setProperty('--wall-p', String(reduced ? 1 : p));
+    const morph = smoothstep(0, .8, p), done = reduced || p > .999;
+    c.morph.style.opacity = done ? '0' : '1';
+    c.focal.style.opacity = done ? '' : '0';
+    const sx = lerp(1, c.sx, morph), sy = lerp(1, c.sy, morph);
+    c.morph.style.transform = `translate(-50%,-50%) scale(${sx},${sy})`;
+    const face = c.morph.firstElementChild as HTMLElement, tile = c.morph.lastElementChild as HTMLElement;
+    face.style.opacity = String(1 - smoothstep(0, .22, p));
+    tile.style.opacity = String(smoothstep(.28, .5, p));
+    const u = (c.morph.offsetWidth * sx) / c.width; // tile text keeps its aspect: uniform scale, counter the box's stretch
+    tile.style.transform = `translate(-50%,-50%) scale(${u/sx},${u/sy})`;
+    const main = document.querySelector<HTMLElement>('main')!;
+    main.style.transform = reduced ? '' : `scale(${1-.04*p})`; main.style.opacity = String(1-smoothstep(0, .55, p));
+}
+function runCamera() {
+    if (!camera || camera.frame) return;
+    camera.last = performance.now();
+    const tick = (now: number) => {
+        const c = camera; if (!c || !overviewEl) return;
+        const dt = Math.min(.05, (now-c.last)/1000); c.last = now;
+        if (reducedMotion()) { c.p += Math.sign(c.target-c.p)*Math.min(Math.abs(c.target-c.p),dt/.2); c.velocity=0; }
+        else { const step = springStep(c.p,c.velocity,c.target,dt); c.p=step.position; c.velocity=step.velocity; }
+        const settled = Math.abs(c.p-c.target)<.002 && Math.abs(c.velocity)<.025;
+        if (settled) { c.p=c.target; c.velocity=0; }
+        drawCamera();
+        overviewEl.classList.toggle('is-settled', settled && c.target === 1);
+        if (!settled) { c.frame=requestAnimationFrame(tick); return; }
+        c.frame=0;
+        if (c.target===0) {
+            overviewCanvas?.stop(); overviewCanvas=undefined; overviewEl.remove(); overviewEl=null; camera=undefined;
+            document.body.classList.remove('overview-lock');
+            document.querySelectorAll<HTMLElement>('main,.swipe-stack').forEach(node => { node.style.transform=''; node.style.opacity=''; node.style.visibility=''; });
+            document.getElementById('overview-open')?.focus();
+        } else {
+            overviewCanvas?.setActive(true);
+            if (read('overviewDragHint')!=='1') {
+                overviewEl.querySelector<HTMLElement>('.overview-drag-hint')!.classList.add('is-visible');
+                overviewCanvas?.nudge(); hintTimer=window.setTimeout(hideDragHint,3500);
+            }
+        }
+    };
+    camera.frame=requestAnimationFrame(tick);
+}
 function overviewNames() {
     if (deckSource !== rows) resetDeck();
     return deckRows.filter(p => p.name.startsWith(chooseInitial));
 }
 function openOverview() {
     const names = overviewNames();
-    if (!names.length || overviewEl) return;
+    if (overviewEl && camera) { camera.target=1; overviewCanvas?.setActive(false); runCamera(); return; }
+    if (!names.length) return;
     const w = swipeMessages[locale], mobile = window.innerWidth < 600;
-    const perRow = mobile ? 10 : 14, grid = buildRows(names, mobile ? 9 : 11, perRow);
+    const span = Math.hypot(innerWidth, innerHeight) * 3;
+    const perRow = Math.max(mobile ? 10 : 14, Math.ceil(span / (mobile ? 212 : 254)));
+    const topName = availableCards()[0]?.name;
+    const start = names.findIndex(p => p.name === topName);
+    const ordered = start > 0 ? [...names.slice(start), ...names.slice(0,start)] : names;
+    const grid = buildRows(ordered, Math.max(12, Math.ceil(span / 110)), perRow);
+    const top = document.querySelector<HTMLElement>('.swipe-card.is-top');
     const card = (p: Person) => `<button type="button" class="overview-card${p.name.length > 9 ? ' is-long' : ''}" data-name="${esc(p.name)}"><strong>${esc(p.name)}${selected.has(p.name) ? '<span class="overview-star" aria-label="★">★</span>' : ''}</strong><small>${locale === 'zh' ? `${year} 年第 ${p.rank} 名 · ${p.occurrences.toLocaleString(locale)} ${w.ovBirths}` : `#${p.rank} in ${year} · ${p.occurrences.toLocaleString(locale)} ${w.ovBirths}`}</small></button>`;
     const el = document.createElement('div');
     el.id = 'overview'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-modal', 'true'); el.setAttribute('aria-label', w.overviewTitle);
-    el.innerHTML = `<div class="overview-bar"><div><h2>${w.overviewTitle}</h2><p>${year} · ${messages[locale][gender]}${chooseInitial ? ` · ${chooseInitial}` : ''} · ${w.overviewHint}</p></div><button type="button" id="overview-close">← ${w.back}</button></div><div class="overview-stage"><div class="overview-plane" style="--per:${perRow}">${grid.map((row, r) => `<div class="overview-row ${r % 2 ? 'is-alt' : ''}" style="--dur:${rowDuration(r)}s"><div class="overview-track"><div class="overview-set">${row.map(card).join('')}</div><div class="overview-set" aria-hidden="true">${row.map(card).join('')}</div></div></div>`).join('')}</div></div>`;
+    el.innerHTML = `<div class="overview-background"></div><div class="overview-drag-hint"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M8 12V5a2 2 0 0 1 4 0v6-3a2 2 0 0 1 4 0v3-1a2 2 0 0 1 4 0v6c0 4-3 6-7 6-2 0-4-1-5-3l-4-6a2 2 0 0 1 3-2l2 2"/></svg>${locale === 'zh' ? '拖动浏览' : 'Drag to explore'}</div><div class="overview-bar"><div><h2>${w.overviewTitle}</h2><p>${year} · ${messages[locale][gender]}${chooseInitial ? ` · ${chooseInitial}` : ''} · ${w.overviewHint}</p></div><button type="button" id="overview-close">← ${w.back}</button></div><div class="overview-stage"><div class="overview-plane" style="--per:${perRow}">${grid.map((row, r) => `<div class="overview-row ${r % 2 ? 'is-alt' : ''}" style="--dur:${rowDuration(r)}s"><div class="overview-track"><div class="overview-set">${row.map(card).join('')}</div><div class="overview-set" aria-hidden="true">${row.map(card).join('')}</div><div class="overview-set" aria-hidden="true">${row.map(card).join('')}</div></div></div>`).join('')}</div></div>`;
     el.querySelectorAll<HTMLElement>('.overview-set[aria-hidden] button').forEach(b => b.tabIndex = -1);
     document.body.append(el);
     document.body.classList.add('overview-lock');
     overviewEl = el;
-    requestAnimationFrame(() => el.classList.add('is-open'));
+    overviewCanvas = startOverviewCanvas(el, reducedMotion(), () => { save('overviewDragHint','1'); hideDragHint(); });
+    // Bring an instance of the top name to the screen centre before measuring, so the camera pulls straight back from it.
+    {
+        const plane = el.querySelector<HTMLElement>('.overview-plane')!, prev = plane.style.transform;
+        plane.style.transform = 'none';
+        const P = plane.getBoundingClientRect(), C = visibleOverviewCard(el, top?.dataset.name).getBoundingClientRect();
+        overviewCanvas.panBy(P.x + P.width / 2 - C.x - C.width / 2, P.y + P.height / 2 - C.y - C.height / 2);
+        plane.style.transform = prev;
+    }
+    measureCamera(visibleOverviewCard(el, top?.dataset.name));
+    drawCamera(); runCamera();
     el.querySelector<HTMLElement>('#overview-close')!.onclick = () => closeOverview();
-    el.onclick = e => { const b = (e.target as HTMLElement).closest<HTMLElement>('.overview-card'); if (b) closeOverview(b.dataset.name!); };
+    el.onclick = e => { const b = (e.target as HTMLElement).closest<HTMLElement>('.overview-card'); if (b) closeOverview(b.dataset.name!, b); };
     el.querySelector<HTMLElement>('#overview-close')!.focus();
 }
-function closeOverview(name?: string) {
-    const el = overviewEl;
-    if (!el) return;
-    overviewEl = null;
-    document.body.classList.remove('overview-lock');
-    const done = () => {
-        el.remove();
-        if (name) { pinned = name; decisions = decisions.filter(d => d.person.name !== name); render(); }
-        document.getElementById('overview-open')?.focus();
-    };
-    if (reducedMotion()) { done(); return; }
-    el.classList.remove('is-open');
-    window.setTimeout(done, 300);
+function closeOverview(name?: string, clicked?: HTMLElement) {
+    if (!overviewEl || !camera) return;
+    hideDragHint(); overviewCanvas?.setActive(false); overviewEl.classList.remove('is-settled');
+    if (camera.target === 0) return;
+    // Mid-flight reversal keeps the same geometry, position and velocity.
+    if (camera.p === 1 || name) {
+        const focal = clicked ?? visibleOverviewCard(overviewEl, availableCards()[0]?.name);
+        if (name) { pinned=name; decisions=decisions.filter(d => d.person.name!==name); render(); }
+        measureCamera(focal);
+    }
+    camera.target=0; drawCamera(); runCamera();
 }
 function decide(keep: boolean) {
     if (deciding || loading || failed || route() !== 'choose') return;
