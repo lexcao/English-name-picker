@@ -234,7 +234,19 @@ function measureCamera(focal: HTMLElement) {
     const morph = document.createElement('div');
     const face = top.cloneNode(true) as HTMLElement;
     Object.assign(face.style, { position: 'absolute', inset: '0 auto auto 0', margin: '0', width: `${S.width}px`, height: `${S.height}px`, maxWidth: 'none', transform: `scale(${1/s0})`, transformOrigin: '0 0', visibility: 'visible' });
-    morph.append(face);
+    face.classList.add('overview-morph-face'); face.classList.remove('is-top');
+    // One surface, one moving element. Its two text layers never overlap in time: the stack text leaves, then a
+    // clone of the wall tile's text arrives, so at p=1 the morph is pixel-identical to the focal tile and swaps in one frame.
+    const tile = focal.cloneNode(true) as HTMLElement;
+    tile.classList.add('overview-morph-tile'); tile.classList.remove('is-focal');
+    Object.assign(tile.style, { position: 'absolute', left: '50%', top: '50%', margin: '0', width: `${C.width}px`, height: `${C.height}px`, opacity: '0' });
+    const cs = getComputedStyle(focal);
+    Object.assign(morph.style, { background: cs.backgroundColor, borderRadius: cs.borderRadius, boxShadow: cs.boxShadow, border: cs.border });
+    morph.append(face, tile);
+    // Neighbours reveal outward from the focal card on the same timeline.
+    const FX = C.x + C.width/2, FY = C.y + C.height/2;
+    el.querySelectorAll<HTMLElement>('.overview-card').forEach(card => { const r = card.getBoundingClientRect();
+        card.style.setProperty('--d', String(Math.min(1, Math.hypot(r.x + r.width/2 - FX, r.y + r.height/2 - FY) / (C.width * 3)))); });
     morph.classList.add('overview-morph'); morph.inert = true; morph.setAttribute('aria-hidden', 'true');
     Object.assign(morph.style, { left: `${P.width / 2 + cx}px`, top: `${P.height / 2 + cy}px`, width: `${S.width / s0}px`, height: `${S.height / s0}px` });
     plane.append(morph); focal.classList.add('is-focal');
@@ -251,17 +263,22 @@ function drawCamera() {
     const plane = overviewEl.querySelector<HTMLElement>('.overview-plane')!;
     plane.style.transform = reduced ? '' : `translate(${c.tx * (1-p)}px,${c.ty * (1-p)}px) rotateX(${18*p}deg) rotateZ(${-22*p}deg) scale(${lerp(c.s0, innerWidth < 600 ? 1.25 : 1.45, p)})`;
     overviewEl.style.opacity = reduced ? String(p) : '1';
-    const fade = reduced ? 1 : smoothstep(0, .5, p);
+    const fade = reduced ? 1 : smoothstep(.1, .6, p);
     overviewEl.querySelector<HTMLElement>('.overview-background')!.style.opacity = String(fade);
-    overviewEl.querySelector<HTMLElement>('.overview-bar')!.style.opacity = String(fade);
-    overviewEl.style.setProperty('--wall-opacity', String(reduced ? 1 : smoothstep(.05, .6, p)));
-    const morph = smoothstep(0, .6, p);
-    // Hand-off: the stack face fades before the tile face appears, so the two layouts never double-expose.
-    c.morph.style.opacity = reduced ? '0' : String(1-smoothstep(.12, .42, p));
-    c.focal.style.opacity = reduced ? '' : String(smoothstep(.3, .55, p));
-    c.morph.style.transform = `translate(-50%,-50%) scale(${lerp(1,c.sx,morph)},${lerp(1,c.sy,morph)})`;
+    overviewEl.querySelector<HTMLElement>('.overview-bar')!.style.opacity = String(smoothstep(.4, .9, p));
+    overviewEl.style.setProperty('--wall-p', String(reduced ? 1 : p));
+    const morph = smoothstep(0, .8, p), done = reduced || p > .999;
+    c.morph.style.opacity = done ? '0' : '1';
+    c.focal.style.opacity = done ? '' : '0';
+    const sx = lerp(1, c.sx, morph), sy = lerp(1, c.sy, morph);
+    c.morph.style.transform = `translate(-50%,-50%) scale(${sx},${sy})`;
+    const face = c.morph.firstElementChild as HTMLElement, tile = c.morph.lastElementChild as HTMLElement;
+    face.style.opacity = String(1 - smoothstep(0, .22, p));
+    tile.style.opacity = String(smoothstep(.28, .5, p));
+    const u = (c.morph.offsetWidth * sx) / c.width; // tile text keeps its aspect: uniform scale, counter the box's stretch
+    tile.style.transform = `translate(-50%,-50%) scale(${u/sx},${u/sy})`;
     const main = document.querySelector<HTMLElement>('main')!;
-    main.style.transform = reduced ? '' : `scale(${1-.04*p})`; main.style.opacity = String(1-.6*p);
+    main.style.transform = reduced ? '' : `scale(${1-.04*p})`; main.style.opacity = String(1-smoothstep(0, .55, p));
 }
 function runCamera() {
     if (!camera || camera.frame) return;

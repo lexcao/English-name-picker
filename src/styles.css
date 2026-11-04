@@ -792,10 +792,13 @@ body.overview-lock { overflow:hidden }
 .overview-background { position:absolute; inset:0; background:var(--background); pointer-events:none }
 .overview-stage { -webkit-mask-image:none; mask-image:none }
 .overview-plane { will-change:transform }
-.overview-card { opacity:var(--wall-opacity,1) }
+.overview-card { --r:clamp(0, calc((var(--wall-p,1) - .12 - var(--d,0) * .45) / .35), 1); opacity:var(--r); scale:calc(.9 + .1 * var(--r)) }
 .overview-card.is-focal { opacity:1 }
 .overview-stage.is-dragging .overview-card { transform:scale(.97) }
 .overview-drag-hint { position:absolute; z-index:3; bottom:32px; left:50%; transform:translateX(-50%); display:flex; align-items:center; gap:10px; padding:12px 20px; border-radius:999px; background:var(--text); color:var(--background); pointer-events:none; opacity:0; transition:opacity 200ms ease }
 .overview-drag-hint.is-visible { opacity:1 }
 .overview-morph { position:absolute; z-index:10; pointer-events:none; transform-origin:center; will-change:transform,opacity }
 #overview:not(.is-settled) .overview-card { pointer-events:none }
+.overview-morph { overflow:hidden }
+.overview-morph-face, .overview-morph-tile { background:transparent!important; box-shadow:none!important; border-color:transparent!important; will-change:opacity,transform }
+.overview-morph-tile { transform-origin:center }
