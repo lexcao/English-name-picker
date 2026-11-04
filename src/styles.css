@@ -675,8 +675,9 @@ main:has(.choose-page) { padding-top:14px }
 .swipe-card { position:absolute; inset:0 0 24px; display:flex; align-items:center; flex-direction:column; justify-content:center; background:var(--panel); border:1px solid var(--line); border-radius:28px; padding:32px; box-shadow:0 15px 28px -20px var(--text); transform-origin:50% 75%; user-select:none; -webkit-user-select:none }
 .swipe-card.is-top { touch-action:none; cursor:grab; will-change:transform; }
 .swipe-card.is-top:active { cursor:grabbing }
-.swipe-card.is-behind { transform:translateY(calc(var(--depth) * 10px)) scale(calc(1 - var(--depth) * .045)); background:var(--soft); pointer-events:none }
-.swipe-card.is-behind:nth-child(3) { background:var(--accent) }
+/* Every card has the same surface; depth is a tint overlay, so promotion never changes colour. */
+.swipe-card.is-behind { transform:translateY(calc(var(--depth) * 10px)) scale(calc(1 - var(--depth) * .045)); pointer-events:none }
+.swipe-card::after { content:''; position:absolute; inset:-1px; border-radius:inherit; background:var(--soft); opacity:calc(min(var(--depth), 1) * .85); pointer-events:none }
 .card-topline { position:absolute; inset:26px 28px auto; display:flex; justify-content:space-between; gap:12px; font-size:.8rem; color:var(--muted) }
 .swipe-card h2 { font:500 clamp(2.8rem,6vw,5.5rem)/1.15 Georgia,"Songti SC",serif; letter-spacing:-.055em; max-width:100%; overflow-wrap:anywhere; margin:24px 0 12px }
 .card-occurrences { font-size:.85rem; color:var(--muted); margin-bottom:16px }
@@ -774,7 +775,6 @@ body.overview-lock { overflow:hidden }
 }
 @media(prefers-color-scheme:dark) {
   .swipe-card,.overview-card { box-shadow:0 18px 30px -22px #000 }
-  .swipe-card.is-behind:nth-child(3) { background:var(--soft); opacity:.7 }
 }
 .overview-card.is-long strong { font-size:1.55rem }
 .overview-card strong,.overview-card small { max-width:100%; overflow:hidden; text-overflow:ellipsis }
@@ -792,7 +792,7 @@ body.overview-lock { overflow:hidden }
 .overview-background { position:absolute; inset:0; background:var(--background); pointer-events:none }
 .overview-stage { -webkit-mask-image:none; mask-image:none }
 .overview-plane { will-change:transform }
-.overview-card { --r:clamp(0, calc((var(--wall-p,1) - .12 - var(--d,0) * .45) / .35), 1); opacity:var(--r); scale:calc(.9 + .1 * var(--r)) }
+.overview-card.is-focal, .overview-morph .overview-card { opacity:1; scale:1; transition:none }
 .overview-card.is-focal { opacity:1 }
 .overview-stage.is-dragging .overview-card { transform:scale(.97) }
 .overview-drag-hint { position:absolute; z-index:3; bottom:32px; left:50%; transform:translateX(-50%); display:flex; align-items:center; gap:10px; padding:12px 20px; border-radius:999px; background:var(--text); color:var(--background); pointer-events:none; opacity:0; transition:opacity 200ms ease }
@@ -803,3 +803,16 @@ body.overview-lock { overflow:hidden }
 .overview-morph-face { box-shadow:none!important; will-change:opacity,transform }
 .overview-morph-tile { background:transparent!important; box-shadow:none!important; border-color:transparent!important; will-change:opacity,transform }
 .overview-morph-tile { transform-origin:center }
+
+/* Perf: a moving 3D plane with hundreds of blurred shadows and a backdrop blur re-rasterises every frame. */
+.overview-card { box-shadow:none }
+.overview-bar { -webkit-backdrop-filter:none; backdrop-filter:none; background:color-mix(in srgb,var(--background) 96%,transparent); box-shadow:none }
+.overview-plane { will-change:transform }
+@media (prefers-reduced-motion:reduce){ .overview-card, #overview.is-revealed .overview-card { transition:opacity .2s linear; scale:1 } }
+
+/* v5 reveal: per-row, compositor-only (opacity + translate on will-change layers), Motion-style spring linear() */
+:root { --spring: linear(0, .0066, .0254 1.9%, .1012 4%, .2155 6.3%, .5476 12.3%, .6879 15.2%, .8045 18.2%, .8925 21.3%, .9578 24.7%, .9997 28.3%, 1.0222 31.8%, 1.0322 35.6%, 1.0313 40.5%, 1.0124 50.5%, 1.0004 61.8%, .9984 72.3%, 1) }
+.overview-row { opacity:0; translate:0 28px; transition:opacity .22s ease calc((1 - var(--d,0)) * .08s), translate .22s ease calc((1 - var(--d,0)) * .08s) }
+#overview.is-revealed .overview-row { opacity:1; translate:0 0; transition:opacity .4s cubic-bezier(.2,.8,.2,1) calc(var(--d,0) * .28s + .06s), translate .75s var(--spring) calc(var(--d,0) * .28s + .06s) }
+@media (prefers-reduced-motion:reduce){ .overview-row, #overview.is-revealed .overview-row { translate:none; transition:opacity .2s linear } }
+.overview-row.is-focal-row, #overview.is-revealed .overview-row.is-focal-row { translate:none }
