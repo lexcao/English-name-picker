@@ -11,7 +11,7 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "generate:data": "node scripts/build-data.mjs",
-    "deploy": "npm run build && gh-pages -d dist",
+    "deploy": "npm run build && gh-pages -d dist --add",
     "test": "node --experimental-strip-types --test tests/*.test.ts"
   },
   "devDependencies": {
