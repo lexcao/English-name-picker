@@ -1149,3 +1149,16 @@ html[lang^="zh"] .choose-page .page-title h1 {
 #overview.is-parked { content-visibility:hidden }
 
 body.overview-flying .choose-page { overflow:visible }
+
+/* Name Vintage brand mark (logo B, card stack). */
+.brand-icon { width:36px; height:36px; background:none; border-radius:0; display:block; line-height:0 }
+.brand-icon svg { display:block; overflow:visible }
+.brand-icon .bi-back { fill:#9db8a3 }
+.brand-icon .bi-front { fill:var(--accent) }
+.brand-icon .bi-n { fill:none; stroke:var(--background); stroke-width:4.5; stroke-linecap:round }
+.brand-icon .bi-dot { fill:#9db8a3 }
+.brand:hover .bi-back { transform:rotate(16deg) translate(2px,-1px); transform-origin:34px 29px }
+.brand .bi-back { transition:transform .35s cubic-bezier(.2,.8,.2,1) }
+@media (prefers-color-scheme:dark){ .brand-icon .bi-back,.brand-icon .bi-dot { fill:#5f7d68 } }
+@media (prefers-reduced-motion:reduce){ .brand .bi-back { transition:none } }
+.seo-static { max-width:680px; margin:0 auto; padding:48px 24px; line-height:1.7 }
