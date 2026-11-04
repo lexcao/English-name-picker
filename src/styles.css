@@ -800,5 +800,6 @@ body.overview-lock { overflow:hidden }
 .overview-morph { position:absolute; z-index:10; pointer-events:none; transform-origin:center; will-change:transform,opacity }
 #overview:not(.is-settled) .overview-card { pointer-events:none }
 .overview-morph { overflow:hidden }
-.overview-morph-face, .overview-morph-tile { background:transparent!important; box-shadow:none!important; border-color:transparent!important; will-change:opacity,transform }
+.overview-morph-face { box-shadow:none!important; will-change:opacity,transform }
+.overview-morph-tile { background:transparent!important; box-shadow:none!important; border-color:transparent!important; will-change:opacity,transform }
 .overview-morph-tile { transform-origin:center }

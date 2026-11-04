@@ -241,7 +241,7 @@ function measureCamera(focal: HTMLElement) {
     tile.classList.add('overview-morph-tile'); tile.classList.remove('is-focal');
     Object.assign(tile.style, { position: 'absolute', left: '50%', top: '50%', margin: '0', width: `${C.width}px`, height: `${C.height}px`, opacity: '0' });
     const cs = getComputedStyle(focal);
-    Object.assign(morph.style, { background: cs.backgroundColor, borderRadius: cs.borderRadius, boxShadow: cs.boxShadow, border: cs.border });
+    Object.assign(morph.style, { background: cs.backgroundColor, borderRadius: cs.borderRadius, boxShadow: cs.boxShadow });
     morph.append(face, tile);
     // Neighbours reveal outward from the focal card on the same timeline.
     const FX = C.x + C.width/2, FY = C.y + C.height/2;
