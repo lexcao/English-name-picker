@@ -205,8 +205,10 @@ function choosePage() {
 }
 let overviewEl: HTMLElement | null = null;
 let overviewCanvas: ReturnType<typeof startOverviewCanvas> | undefined;
-let camera: { p: number; velocity: number; target: number; frame: number; last: number; focal: HTMLElement; morph: HTMLElement; mw: number; cx: number; cy: number; tx: number; ty: number; s0: number; width: number; height: number; sx: number; sy: number } | undefined;
-let hintTimer = 0, ignorePop = false;
+let camera: { p: number; velocity: number; target: number; frame: number; last: number; focal: HTMLElement; anchor: HTMLElement; top: HTMLElement; dim: HTMLElement[]; S: DOMRect; cw: number; ch: number; tx: number; ty: number; s0: number } | undefined;
+let hintTimer = 0, ignorePop = false, lockY = 0;
+// The page under the overview must never move (the real top card flies from/to its resting rect).
+window.addEventListener('scroll', () => { if (overviewEl && scrollY !== lockY) window.scrollTo({ top: lockY, behavior: 'instant' }); });
 window.addEventListener('popstate', () => { if (ignorePop) { ignorePop = false; return; } if (overviewEl && !history.state?.overview) closeOverview(); });
 function visibleOverviewCard(el: HTMLElement, name?: string, at?: { x: number; y: number }): HTMLElement {
     const x = at?.x ?? innerWidth / 2, y = at?.y ?? innerHeight / 2;
@@ -228,91 +230,91 @@ function hideDragHint() {
     clearTimeout(hintTimer);
     overviewEl?.querySelector<HTMLElement>('.overview-drag-hint')?.classList.remove('is-visible');
 }
-function measureCamera(focal: HTMLElement, source: HTMLElement = focal) {
+/** Everything in <main> except the path down to the real top card (it flies itself; no clone, nothing to swap). */
+function dimTargets(top: HTMLElement) {
+    const out: HTMLElement[] = [];
+    for (let n: HTMLElement = top; n.parentElement && n.tagName !== 'MAIN'; n = n.parentElement)
+        for (const sib of n.parentElement.children) if (sib !== n) out.push(sib as HTMLElement);
+    return out;
+}
+function resetCameraCard(c: NonNullable<typeof camera>) {
+    for (const n of c.dim) n.style.opacity = '';
+    Object.assign(c.top.style, { transform: '', opacity: '', transformOrigin: '', pointerEvents: '', willChange: '' });
+    const stack = c.top.closest<HTMLElement>('.swipe-stack'); if (stack) stack.style.zIndex = '';
+    document.body.classList.remove('overview-flying');
+}
+function measureCamera(focal: HTMLElement) {
     const el = overviewEl!, plane = el.querySelector<HTMLElement>('.overview-plane')!;
     const top = document.querySelector<HTMLElement>('.swipe-card.is-top')!;
-    camera?.morph.remove(); camera?.focal.classList.remove('is-focal'); if (camera) camera.focal.style.opacity = '';
-    // Measure both endpoints at rest. These temporary writes are restored before paint.
-    const main = document.querySelector<HTMLElement>('main')!;
-    main.style.transform = ''; main.style.opacity = '';
-    focal.classList.add('is-focal');
+    if (camera) { camera.anchor.remove(); camera.focal.classList.remove('is-focal'); camera.focal.style.opacity = ''; resetCameraCard(camera); }
+    const focalRow = focal.closest('.overview-row');
+    el.querySelectorAll('.overview-row.is-focal-row').forEach(r => { if (r !== focalRow) r.classList.remove('is-focal-row'); });
+    focalRow?.classList.add('is-focal-row');
     plane.style.transform = 'scale(1)';
-    // Batch endpoint, appearance and row reads before creating or styling the morph.
-    const S = top.getBoundingClientRect(), P = plane.getBoundingClientRect(), C = focal.getBoundingClientRect();
-    const cs = getComputedStyle(focal);
-    const appearance = { background: cs.backgroundColor, borderRadius: cs.borderRadius, boxShadow: cs.boxShadow };
-    const rowRects = !camera ? [...el.querySelectorAll<HTMLElement>('.overview-row')]
-        .map(row => ({ row, rect: row.getBoundingClientRect() })) : [];
+    // Read the focal card where it is drawn right now (mid hover-lift included) before is-focal snaps it.
+    const C = focal.getBoundingClientRect();
+    focal.classList.add('is-focal');
+    const S = top.getBoundingClientRect(), P = plane.getBoundingClientRect();
+    const rowRects = !camera ? [...el.querySelectorAll<HTMLElement>('.overview-row')].map(row => ({ row, rect: row.getBoundingClientRect() })) : [];
     const cx = C.x + C.width / 2 - P.x - P.width / 2, cy = C.y + C.height / 2 - P.y - P.height / 2;
     const s0 = S.width / C.width;
-    const morph = document.createElement('div');
-    const face = top.cloneNode(true) as HTMLElement;
-    Object.assign(face.style, { position: 'absolute', inset: '0 auto auto 0', margin: '0', width: `${S.width}px`, height: `${S.height}px`, maxWidth: 'none', transform: `scale(${1/s0})`, transformOrigin: '0 0', visibility: 'visible' });
-    face.classList.add('overview-morph-face'); face.classList.remove('is-top');
-    // One surface, one moving element. Its two text layers never overlap in time: the stack text leaves, then a
-    // clone of the wall tile's text arrives, so at p=1 the morph is pixel-identical to the focal tile and swaps in one frame.
-    const tile = source.cloneNode(true) as HTMLElement;
-    tile.classList.add('overview-morph-tile'); tile.classList.remove('is-focal');
-    Object.assign(tile.style, { position: 'absolute', left: '50%', top: '50%', margin: '0', width: `${C.width}px`, height: `${C.height}px`, opacity: '0' });
-    Object.assign(morph.style, appearance);
-    morph.append(face, tile);
-    // Neighbours reveal outward from the focal card on the same timeline.
     const FY = C.y + C.height/2;
-    // Rows (already composited layers) reveal outward from the focal row: ~10 compositor animations instead of ~150.
     rowRects.forEach(({ row, rect: r }) => { row.classList.toggle('is-focal-row', row.contains(focal));
         row.style.setProperty('--d', String(Math.min(1, Math.abs(r.y + r.height/2 - FY) / (C.height * 4)))); });
-    morph.classList.add('overview-morph'); morph.inert = true; morph.setAttribute('aria-hidden', 'true');
-    Object.assign(morph.style, { left: `${P.width / 2 + cx}px`, top: `${P.height / 2 + cy}px`, width: `${S.width / s0}px`, height: `${S.height / s0}px` });
-    plane.append(morph); focal.classList.add('is-focal');
+    // Zero-size point fixed in the plane where the focal tile sat (rows keep drifting; the camera path must not).
+    const anchor = document.createElement('i');
+    Object.assign(anchor.style, { position: 'absolute', left: `${P.width / 2 + cx}px`, top: `${P.height / 2 + cy}px`, width: '0', height: '0', pointerEvents: 'none' });
+    anchor.setAttribute('aria-hidden', 'true'); plane.append(anchor);
     const old = camera;
-    camera = { p: old?.p ?? 0, velocity: old?.velocity ?? 0, target: old?.target ?? 1, frame: old?.frame ?? 0, last: performance.now(), focal, morph, cx, cy,
+    camera = { anchor, p: old?.p ?? 0, velocity: old?.velocity ?? 0, target: old?.target ?? 1, frame: old?.frame ?? 0, last: performance.now(), focal, top, dim: dimTargets(top), S,
+        cw: C.width, ch: C.height, s0,
         tx: S.x + S.width / 2 - (P.x + P.width / 2) - s0 * cx,
-        ty: S.y + S.height / 2 - (P.y + P.height / 2) - s0 * cy,
-        s0, mw: S.width / s0, width: C.width, height: C.height, sx: C.width / (S.width / s0), sy: C.height / (S.height / s0) };
-    top.closest<HTMLElement>('.swipe-stack')!.style.visibility = reducedMotion() ? '' : 'hidden';
+        ty: S.y + S.height / 2 - (P.y + P.height / 2) - s0 * cy };
+    if (!reducedMotion()) {
+        document.body.classList.add('overview-flying');
+        top.closest<HTMLElement>('.swipe-stack')!.style.zIndex = '60';
+        Object.assign(top.style, { transformOrigin: '50% 50%', pointerEvents: 'none', willChange: 'auto' });
+    }
 }
 function drawCamera() {
     if (!camera || !overviewEl) return;
     const c = camera, p = c.p, reduced = reducedMotion();
     const plane = overviewEl.querySelector<HTMLElement>('.overview-plane')!;
-    plane.style.transform = reduced ? '' : `translate(${c.tx * (1-p)}px,${c.ty * (1-p)}px) rotateX(${18*p}deg) rotateZ(${-22*p}deg) scale(${lerp(c.s0, innerWidth < 600 ? 1.25 : 1.45, p)})`;
+    const k = lerp(c.s0, innerWidth < 600 ? 1.25 : 1.45, p);
+    plane.style.transform = reduced ? '' : `translate(${c.tx * (1-p)}px,${c.ty * (1-p)}px) rotateX(${18*p}deg) rotateZ(${-22*p}deg) scale(${k})`;
     overviewEl.style.opacity = reduced ? String(p) : '1';
-    const fade = reduced ? 1 : smoothstep(.1, .6, p);
-    overviewEl.querySelector<HTMLElement>('.overview-background')!.style.opacity = String(fade);
-    overviewEl.querySelector<HTMLElement>('.overview-bar')!.style.opacity = String(smoothstep(.4, .9, p));
-    const morph = smoothstep(0, .8, p), done = reduced || p > .999;
-    c.morph.style.opacity = done ? '0' : '1';
-    c.focal.style.opacity = done ? '' : '0';
-    const sx = lerp(1, c.sx, morph), sy = lerp(1, c.sy, morph);
-    c.morph.style.transform = `translate(-50%,-50%) scale(${sx},${sy})`;
-    const face = c.morph.firstElementChild as HTMLElement, tile = c.morph.lastElementChild as HTMLElement;
-    face.style.opacity = String(1 - smoothstep(0, .22, p));
-    tile.style.opacity = String(smoothstep(.28, .5, p));
-    const u = (c.mw * sx) / c.width; // tile text keeps its aspect: uniform scale, counter the box's stretch
-    tile.style.transform = `translate(-50%,-50%) scale(${u/sx},${u/sy})`;
-    const main = document.querySelector<HTMLElement>('main')!;
-    main.style.transform = reduced ? '' : `scale(${1-.04*p})`; main.style.opacity = String(1-smoothstep(0, .55, p));
+    overviewEl.querySelector<HTMLElement>('.overview-background')!.style.opacity = String(reduced ? 1 : smoothstep(.1, .6, p));
+    const bar = overviewEl.querySelector<HTMLElement>('.overview-bar')!, barO = smoothstep(.4, .9, p);
+    // A transparent backdrop-filter still re-blurs the moving card underneath every frame; drop it once invisible.
+    bar.style.opacity = String(barO); bar.style.visibility = barO < .005 ? 'hidden' : '';
+    const dimmed = String(1-smoothstep(0, .55, p));
+    for (const n of c.dim) n.style.opacity = dimmed;
+    if (reduced) { c.focal.style.opacity = ''; return; }
+    // The real card flies to the focal tile's projected centre; at p=0 every term is exactly identity.
+    const F = c.anchor.getBoundingClientRect();
+    const m = smoothstep(0, .35, p);
+    const sx = lerp(1, k * c.cw / c.S.width, m), sy = lerp(1, k * c.ch / c.S.height, m);
+    const dx = (F.x + F.width/2 - c.S.x - c.S.width/2), dy = (F.y + F.height/2 - c.S.y - c.S.height/2);
+    c.top.style.transform = Math.abs(p) < 1e-5 ? '' : `translate(${dx}px,${dy}px) perspective(1400px) rotateX(${18*p}deg) rotateZ(${-22*p}deg) scale(${sx},${sy})`;
+    c.top.style.opacity = String(1 - smoothstep(.15, .3, p));
+    c.focal.style.opacity = p > .999 && c.target === 1 ? '' : String(smoothstep(.22, .4, p));
 }
-const morphLive = () => !!camera && camera.morph.isConnected && camera.morph.style.visibility !== 'hidden';
+const morphLive = () => !!camera;
 function clearOverviewMorph() {
-    // Only the focal card ever carries inline state; touching all ~800 cards would restyle the whole wall.
     if (!camera) return;
-    const { morph, focal } = camera;
-    focal.style.opacity = ''; focal.classList.remove('is-focal');
-    // Hide first (cheap, honoured by WebKit even inside the 3D plane), detach the layer once the reveal has finished.
-    morph.style.visibility = 'hidden';
-    const detach = () => { if (camera?.morph !== morph || camera.p === 1) morph.remove(); };
-    'requestIdleCallback' in window ? requestIdleCallback(detach, { timeout: 1500 }) : setTimeout(detach, 900);
+    camera.focal.style.opacity = ''; camera.focal.classList.remove('is-focal'); camera.anchor.remove();
+    resetCameraCard(camera);
 }
 function runCamera() {
     if (!camera || camera.frame) return;
-    camera.last = performance.now();
+    camera.last = performance.now(); let first = true;
     const tick = (now: number) => {
         const c = camera; if (!c || !overviewEl) return;
-        const dt = Math.min(.05, (now-c.last)/1000); c.last = now;
+        // First frame after open/close setup: cap dt so the motion starts from rest instead of jumping a long first step.
+        const dt = Math.min(first ? 1/60 : .05, (now-c.last)/1000); c.last = now; first = false;
         if (reducedMotion()) { c.p += Math.sign(c.target-c.p)*Math.min(Math.abs(c.target-c.p),dt/.2); c.velocity=0; }
         else { const step = springStep(c.p,c.velocity,c.target,dt); c.p=step.position; c.velocity=step.velocity; }
-        const settled = Math.abs(c.p-c.target)<.002 && Math.abs(c.velocity)<.025;
+        const settled = Math.abs(c.p-c.target)<(c.target ? .002 : .0004) && Math.abs(c.velocity)<.025;
         if (settled) { c.p=c.target; c.velocity=0; }
         drawCamera();
         overviewEl.classList.toggle('is-settled', settled && c.target === 1);
@@ -322,10 +324,10 @@ function runCamera() {
         if (c.target===0) {
             overviewCanvas?.stop(); overviewCanvas=undefined; overviewEl.remove(); overviewEl=null; camera=undefined;
             document.body.classList.remove('overview-lock');
-            document.querySelectorAll<HTMLElement>('main,.swipe-stack').forEach(node => { node.style.transform=''; node.style.opacity=''; node.style.visibility=''; });
+            
             idle(schedulePrebuild);
             if (pendingRender) { 'requestIdleCallback' in window ? requestIdleCallback(flushRender, { timeout: 400 }) : setTimeout(flushRender, 200); }
-            document.getElementById('overview-open')?.focus();
+            document.getElementById('overview-open')?.focus({ preventScroll: true });
         } else {
             overviewCanvas?.setActive(true);
             if (read('overviewDragHint')!=='1') {
@@ -417,7 +419,10 @@ function takePrebuilt(key: string) {
 function openOverview() {
     if (overviewEl && camera) {
         if (!morphLive()) measureCamera(visibleOverviewCard(overviewEl));
-        camera.target=1; overviewCanvas?.setActive(false); runCamera(); return;
+        camera.target=1; overviewCanvas?.setActive(false); runCamera();
+        const el = overviewEl; requestAnimationFrame(() => { if (overviewEl === el && camera?.target === 1) el.classList.add('is-revealed'); });
+        if (!history.state?.overview) history.pushState({ overview: 1 }, '', location.href);
+        return;
     }
     const top = document.querySelector<HTMLElement>('.swipe-card.is-top');
     const pre = takePrebuilt(overviewKey());
@@ -435,7 +440,7 @@ function openOverview() {
         document.body.append(el);
     }
     document.body.classList.add('overview-lock');
-    overviewEl = el;
+    lockY = scrollY; overviewEl = el;
     if (pre?.canvas && pre.focal) { overviewCanvas = pre.canvas; overviewCanvas.resume(); measureCamera(pre.focal); }
     else {
     overviewCanvas = startOverviewCanvas(el, reducedMotion(), onOverviewDrag);
@@ -465,7 +470,7 @@ function swapStack() {
     document.getElementById('overview-open')?.addEventListener('click', openOverview);
     pendingRender = true;
 }
-function flushRender() { if (pendingRender) { pendingRender = false; if (!overviewEl) { const f = document.activeElement?.id; render(); if (f) document.getElementById(f)?.focus(); } } }
+function flushRender() { if (pendingRender) { pendingRender = false; if (!overviewEl) { const f = document.activeElement?.id; render(); if (f) document.getElementById(f)?.focus({ preventScroll: true }); } } }
 function closeOverview(name?: string, clicked?: HTMLElement) {
     if (!overviewEl || !camera) return;
     hideDragHint(); overviewCanvas?.setActive(false);
@@ -473,11 +478,10 @@ function closeOverview(name?: string, clicked?: HTMLElement) {
     // Mid-flight reversal keeps the same geometry, position and velocity.
     if (camera.p === 1 || name || !morphLive()) {
         // Without a choice, land from whatever card is nearest the centre (after a drag the top name may be far away);
-        // the morph carries the top name's face, so the stack it returns to still matches.
-        const focal = clicked ?? visibleOverviewCard(overviewEl);
-        const source = clicked ?? overviewEl.querySelector<HTMLElement>(`.overview-card[data-name="${CSS.escape(availableCards()[0]?.name ?? '')}"]`) ?? focal;
+        // the morph is gone; the real top card flies back itself.
         if (name) { pinned=name; decisions=decisions.filter(d => d.person.name!==name); swapStack(); }
-        measureCamera(focal, source);
+        // The real top card flies back, so land on the nearest instance of its own name.
+        measureCamera(clicked ?? visibleOverviewCard(overviewEl, availableCards()[0]?.name));
     }
     overviewEl.classList.remove('is-settled', 'is-revealed');
     if (history.state?.overview) { ignorePop = true; history.back(); }

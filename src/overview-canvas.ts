@@ -10,7 +10,7 @@ export function startOverviewCanvas(el: HTMLElement, reduced: boolean, onDrag: (
     let active = false, hintStart = 0;
     let samples: MotionSample[] = [];
     let width = 0, pitch = 0, height = 0, scale = 1;
-    let x = 0, y = 0, vx = 0, vy = 0, last = performance.now(), resume = last;
+    let x = 0, y = 0, vx = 0, vy = 0, last = performance.now(), resume = last, speed = 0;
     const drift = rows.map(() => 0);
     let pointer: number | null = null, dragged = false, startX = 0, startY = 0, px = 0, py = 0;
     const measure = () => {
@@ -42,9 +42,11 @@ export function startOverviewCanvas(el: HTMLElement, reduced: boolean, onDrag: (
         if (active && pointer === null && !reduced) {
             const sx = decayStep(vx, dt * 1000), sy = decayStep(vy, dt * 1000);
             x += sx.distance; y += sy.distance; vx = sx.velocity; vy = sy.velocity;
-            const ease = Math.min(1, (now - resume) / 1200);
-            drift.forEach((_, i) => drift[i] += (i % 2 ? 1 : -1) * width / rowDuration(i) * dt * ease);
         }
+        // Drift speed eases in on open (~1.2s) and out on close (~0.45s): the marquee never starts or stops on a step.
+        const want = active && pointer === null && !reduced ? 1 : 0;
+        speed = want ? Math.min(1, speed + dt / 1.2) : Math.max(0, speed - dt / .45);
+        if (speed) drift.forEach((_, i) => drift[i] += (i % 2 ? 1 : -1) * width / rowDuration(i) * dt * speed * speed * (3 - 2 * speed));
         x = wrap(x, width); y = wrap(y, height);
         const h = hintStart ? Math.min(1, (now - hintStart) / 900) : 0;
         draw(active && !reduced ? 40 * (1 - Math.cos(2 * Math.PI * h)) : 0); frame = requestAnimationFrame(tick);
