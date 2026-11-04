@@ -955,3 +955,6 @@ main:has(.choose-page) { padding-top:16px }
 .choose-page .page-title h1 { font-size:clamp(2.1rem,3vw,2.75rem); margin-bottom:6px }
 .choose-page .guidance { margin-bottom:16px }
 @media (min-width:761px) and (max-height:860px){ main:has(.choose-page){padding-top:6px} .choose-page .page-title h1{font-size:2rem;margin-bottom:2px} .choose-page .guidance{margin-bottom:8px} .choose-filter-panel{padding:6px 0} }
+/* ui-demo r3: stack height follows the taller editorial header so card + actions + key hint stay above the fold */
+.swipe-stack { height:clamp(280px,calc(100svh - 530px),460px) }
+@media (max-width:760px){ .swipe-stack { height:clamp(210px,calc(100svh - 505px),340px) } }
