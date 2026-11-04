@@ -247,8 +247,9 @@ function measureCamera(focal: HTMLElement, source: HTMLElement = focal) {
     morph.append(face, tile);
     // Neighbours reveal outward from the focal card on the same timeline.
     const FX = C.x + C.width/2, FY = C.y + C.height/2;
-    if (!camera) el.querySelectorAll<HTMLElement>('.overview-row .overview-card').forEach(card => { const r = card.getBoundingClientRect();
-        card.style.setProperty('--d', String(Math.min(1, Math.hypot(r.x + r.width/2 - FX, r.y + r.height/2 - FY) / (C.width * 3)))); });
+    // Rows (already composited layers) reveal outward from the focal row: ~10 compositor animations instead of ~150.
+    if (!camera) el.querySelectorAll<HTMLElement>('.overview-row').forEach(row => { const r = row.getBoundingClientRect(); row.classList.toggle('is-focal-row', row.contains(focal));
+        row.style.setProperty('--d', String(Math.min(1, Math.abs(r.y + r.height/2 - FY) / (C.height * 4)))); });
     morph.classList.add('overview-morph'); morph.inert = true; morph.setAttribute('aria-hidden', 'true');
     Object.assign(morph.style, { left: `${P.width / 2 + cx}px`, top: `${P.height / 2 + cy}px`, width: `${S.width / s0}px`, height: `${S.height / s0}px` });
     plane.append(morph); focal.classList.add('is-focal');

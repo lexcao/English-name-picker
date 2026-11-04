@@ -792,8 +792,6 @@ body.overview-lock { overflow:hidden }
 .overview-background { position:absolute; inset:0; background:var(--background); pointer-events:none }
 .overview-stage { -webkit-mask-image:none; mask-image:none }
 .overview-plane { will-change:transform }
-.overview-card { opacity:0; scale:.9; transition:opacity .3s ease calc((1 - var(--d,0)) * .12s), scale .3s ease calc((1 - var(--d,0)) * .12s), transform .2s ease, border-color .2s ease }
-#overview.is-revealed .overview-card { opacity:1; scale:1; transition:opacity .45s cubic-bezier(.2,.8,.2,1) calc(var(--d,0) * .26s + .08s), scale .7s linear(0, .009, .035 2.1%, .141 4.4%, .723 12.9%, .938 16.7%, 1.017 19.4%, 1.067, 1.099 24.3%, 1.108 26%, 1.100 27.8%, 1.078 30.1%, 1.002 38.5%, .985 42%, .983 44.6%, .996 53.9%, 1.001 61%, 1) calc(var(--d,0) * .26s + .08s), transform .2s ease, border-color .2s ease }
 .overview-card.is-focal, .overview-morph .overview-card { opacity:1; scale:1; transition:none }
 .overview-card.is-focal { opacity:1 }
 .overview-stage.is-dragging .overview-card { transform:scale(.97) }
@@ -811,3 +809,10 @@ body.overview-lock { overflow:hidden }
 .overview-bar { -webkit-backdrop-filter:none; backdrop-filter:none; background:color-mix(in srgb,var(--background) 96%,transparent); box-shadow:none }
 .overview-plane { will-change:transform }
 @media (prefers-reduced-motion:reduce){ .overview-card, #overview.is-revealed .overview-card { transition:opacity .2s linear; scale:1 } }
+
+/* v5 reveal: per-row, compositor-only (opacity + translate on will-change layers), Motion-style spring linear() */
+:root { --spring: linear(0, .0066, .0254 1.9%, .1012 4%, .2155 6.3%, .5476 12.3%, .6879 15.2%, .8045 18.2%, .8925 21.3%, .9578 24.7%, .9997 28.3%, 1.0222 31.8%, 1.0322 35.6%, 1.0313 40.5%, 1.0124 50.5%, 1.0004 61.8%, .9984 72.3%, 1) }
+.overview-row { opacity:0; translate:0 28px; transition:opacity .22s ease calc((1 - var(--d,0)) * .08s), translate .22s ease calc((1 - var(--d,0)) * .08s) }
+#overview.is-revealed .overview-row { opacity:1; translate:0 0; transition:opacity .4s cubic-bezier(.2,.8,.2,1) calc(var(--d,0) * .28s + .06s), translate .75s var(--spring) calc(var(--d,0) * .28s + .06s) }
+@media (prefers-reduced-motion:reduce){ .overview-row, #overview.is-revealed .overview-row { translate:none; transition:opacity .2s linear } }
+.overview-row.is-focal-row, #overview.is-revealed .overview-row.is-focal-row { translate:none }
