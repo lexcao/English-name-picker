@@ -1,5 +1,12 @@
+/* Self-hosted fonts (SIL OFL 1.1): Bricolage Grotesque, Inter Tight, Noto Sans SC (UI-text subset) */
+@font-face{font-family:"Bricolage Grotesque";src:url(/fonts/bricolage-latin.woff2) format("woff2");font-weight:400 800;font-display:swap;unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+20AC,U+2122,U+2190-2199,U+2212,U+2215,U+266A}
+@font-face{font-family:"Inter Tight";src:url(/fonts/inter-tight-latin.woff2) format("woff2");font-weight:400 600;font-display:swap;unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+20AC,U+2122,U+2190-2199,U+2212,U+2215,U+266A}
+@font-face{font-family:"Noto Sans SC";src:url(/fonts/noto-sans-sc-ui.woff2) format("woff2");font-weight:400 800;font-display:swap;unicode-range:U+3000-303F,U+4E00-9FFF,U+FF00-FFEF}
+@font-face{font-family:"Bricolage Fallback";src:local("Arial"),local("Helvetica Neue"),local("Liberation Sans");size-adjust:98.4%;ascent-override:94.5%;descent-override:27.4%;line-gap-override:0%}
+@font-face{font-family:"Inter Tight Fallback";src:local("Arial"),local("Helvetica Neue"),local("Liberation Sans");size-adjust:95.7%;ascent-override:101.2%;descent-override:25.2%;line-gap-override:0%}
+:root{--font-display:"Bricolage Grotesque","Bricolage Fallback","Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif;--font-ui:"Inter Tight","Inter Tight Fallback","Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif}
 :root {
-  font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  font-family:var(--font-ui);
   --text:#243c32;
   --background:#f6f7f2;
   font-synthesis:none;
@@ -81,7 +88,7 @@ header {
   height:39px;
   border-radius:12px;
   font-size:1.6rem;
-  font-family:Georgia,serif
+  font-family:var(--font-display)
 }
 .locale {
   background:transparent
@@ -139,7 +146,7 @@ h3 {
   overflow:hidden
 }
 .hero h1 {
-  font-family:Georgia,"Songti SC",serif;
+  font-family:var(--font-display);
   font-size:clamp(3rem,6.4vw,5rem);
   font-weight:500;
   max-width:650px
@@ -181,7 +188,7 @@ h3 {
   pointer-events:none
 }
 .word-art span {
-  font:italic 2.7rem Georgia,serif;
+  font:italic 2.7rem var(--font-display);
   padding:9px 28px;
   border:1px solid var(--line);
   border-radius:50px;
@@ -213,7 +220,7 @@ h3 {
 }
 .step-number {
   display:block;
-  font:italic 2rem Georgia,serif;
+  font:italic 2rem var(--font-display);
   color:var(--accent);
   margin-bottom:20px
 }
@@ -679,11 +686,11 @@ main:has(.choose-page) { padding-top:14px }
 .swipe-card.is-behind { transform:translateY(calc(var(--depth) * 10px)) scale(calc(1 - var(--depth) * .045)); pointer-events:none }
 .swipe-card::after { content:''; position:absolute; inset:-1px; border-radius:inherit; background:var(--soft); opacity:calc(min(var(--depth), 1) * .85); pointer-events:none }
 .card-topline { position:absolute; inset:26px 28px auto; display:flex; justify-content:space-between; gap:12px; font-size:.8rem; color:var(--muted) }
-.swipe-card h2 { font:500 clamp(2.8rem,6vw,5.5rem)/1.15 Georgia,"Songti SC",serif; letter-spacing:-.055em; max-width:100%; overflow-wrap:anywhere; margin:24px 0 12px }
+.swipe-card h2 { font:500 clamp(2.8rem,6vw,5.5rem)/1.15 var(--font-display); letter-spacing:-.055em; max-width:100%; overflow-wrap:anywhere; margin:24px 0 12px }
 .card-occurrences { font-size:.85rem; color:var(--muted); margin-bottom:16px }
 .card-pronounce { border:0; background:transparent; color:var(--accent); font-size:1.3rem }
 .card-pronounce span { font-size:.8rem; vertical-align:middle; margin-left:5px }
-.card-rule { position:absolute; bottom:20px; color:var(--muted); font:italic 1.1rem Georgia,serif }
+.card-rule { position:absolute; bottom:20px; color:var(--muted); font:italic 1.1rem var(--font-display) }
 .stamp-keep,.stamp-skip { position:absolute; top:70px; border:3px solid var(--accent); color:var(--accent); font-weight:750; text-transform:uppercase; letter-spacing:.08em; border-radius:8px; padding:8px 14px; opacity:0; pointer-events:none; z-index:2; background:var(--panel) }
 .stamp-keep { right:24px; transform:rotate(12deg) }
 .stamp-skip { left:24px; transform:rotate(-12deg); color:var(--muted); border-color:var(--muted) }
@@ -694,17 +701,16 @@ main:has(.choose-page) { padding-top:14px }
 .swipe-keys { font-size:.7rem; margin:8px 0 0 }
 .choose-page .speech { text-align:left; margin:16px 0 0; padding:12px 0; font-size:.75rem }
 #choose-shortlist { min-width:0; scroll-margin-top:24px }
-#choose-shortlist .shortlist { position:static; background:transparent; border-width:0 0 0 1px; border-radius:0; padding:0 0 20px 24px; margin-top:22px }
+#choose-shortlist .shortlist { position:static }
 /* Give the flex item a shrinkable text box and inset glyphs from the button clip edge. */
-#choose-shortlist .name-speak { flex:1; min-width:0; padding:8px 6px; background:transparent; overflow-wrap:anywhere; text-align:left; appearance:none; overflow:visible }
+.shortlist .name-speak { flex:1; min-width:0; padding:8px 6px; background:transparent; overflow-wrap:anywhere; text-align:left; appearance:none; overflow:visible }
 #choose-shortlist li { gap:8px }
 #choose-shortlist li > div { display:flex; flex-shrink:0 }
 #deck-end { min-height:420px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; margin-bottom:12px }
-#deck-end h2 { font:500 2rem Georgia,"Songti SC",serif }
+#deck-end h2 { font:500 2rem var(--font-display) }
 #deck-end p { margin-bottom:0 }
 @media(max-width:900px) {
   .swipe-workspace { grid-template-columns:minmax(0,1fr); gap:16px }
-  #choose-shortlist .shortlist { border:1px solid var(--line); border-radius:18px; padding:20px; background:var(--panel); margin-top:0 }
   #choose-filters-toggle { display:flex; align-items:center; gap:10px; width:100%; border:0; padding:4px 0; background:transparent; text-align:left; font-size:.8rem; min-height:36px }
   #choose-filters-toggle span:nth-child(2) { flex:1; font-size:.7rem; color:var(--muted); line-height:1.5 }
   .choose-controls { display:none }
@@ -741,7 +747,7 @@ body.overview-lock { overflow:hidden }
 #overview { position:fixed; inset:0; z-index:50; background:var(--background); color:var(--text); opacity:0; transition:opacity .3s ease; overflow:hidden }
 #overview.is-open { opacity:1 }
 .overview-bar { position:absolute; z-index:2; inset:0 0 auto; display:flex; align-items:center; justify-content:space-between; gap:16px; padding:18px clamp(16px,4vw,48px); background:color-mix(in srgb,var(--background) 88%,transparent); -webkit-backdrop-filter:blur(14px); backdrop-filter:blur(14px); border-bottom:1px solid var(--line); box-shadow:0 12px 24px -8px var(--background) }
-.overview-bar h2 { font:500 1.5rem/1.2 Georgia,"Songti SC",serif; margin:0 }
+.overview-bar h2 { font:500 1.5rem/1.2 var(--font-display); margin:0 }
 .overview-bar p { margin:4px 0 0; font-size:.75rem; color:var(--muted) }
 #overview-close { flex-shrink:0; border-radius:999px; padding:10px 18px; min-height:42px; background:var(--accent); color:var(--panel); border:0; font-size:.8rem }
 .overview-stage { position:absolute; inset:0; perspective:1400px; display:flex; align-items:center; justify-content:center;
@@ -754,7 +760,7 @@ body.overview-lock { overflow:hidden }
 .overview-row.is-alt .overview-card { background:var(--soft) }
 .overview-card:focus-visible { transform:translateY(-4px); border-color:var(--accent) }
 @media(hover:hover){ .overview-stage:not(.is-dragging) .overview-card:hover { transform:translateY(-4px); border-color:var(--accent) } }
-.overview-card strong { font:500 2rem/1.1 Georgia,"Songti SC",serif; letter-spacing:-.03em }
+.overview-card strong { font:500 2rem/1.1 var(--font-display); letter-spacing:-.03em }
 .overview-card small { font-size:.72rem; color:var(--muted) }
 .overview-star { color:var(--accent); font-size:.9rem; margin-left:6px; vertical-align:super }
 @media(prefers-color-scheme:dark) {
@@ -816,3 +822,320 @@ body.overview-lock { overflow:hidden }
 #overview.is-revealed .overview-row { opacity:1; translate:0 0; transition:opacity .4s cubic-bezier(.2,.8,.2,1) calc(var(--d,0) * .28s + .06s), translate .75s var(--spring) calc(var(--d,0) * .28s + .06s) }
 @media (prefers-reduced-motion:reduce){ .overview-row, #overview.is-revealed .overview-row { translate:none; transition:opacity .2s linear } }
 .overview-row.is-focal-row, #overview.is-revealed .overview-row.is-focal-row { translate:none }
+
+/* Shared editorial palette and typography. Deck and camera motion remain
+   owned by the rules above. */
+body {
+  --background:#f5f2e9;
+  --panel:#fcfaf4;
+  --text:#233b31;
+  --muted:#647167;
+  --line:#d7dacf;
+  --accent:#365f49;
+  --soft:#e6ebdf;
+}
+.hero { padding:12px 0 88px; overflow:visible; display:grid; grid-template-columns:minmax(0,1.65fr) minmax(0,1fr); column-gap:64px }
+.hero-colophon { grid-column:1/-1; display:flex; justify-content:space-between; gap:24px; border-bottom:1px solid var(--line); padding-bottom:18px; margin-bottom:54px; font-size:.68rem; line-height:1.6; letter-spacing:.12em; color:var(--muted) }
+.hero-colophon span:last-child { white-space:nowrap; letter-spacing:.08em }
+.hero h1 { grid-column:1; max-width:100%; font-size:clamp(3.5rem,6.4vw,6rem); line-height:1.04; letter-spacing:-.06em; text-wrap:balance; margin-bottom:28px }
+.hero .intro { grid-column:1; max-width:420px; font-size:1rem; line-height:1.9; margin-bottom:32px }
+.hero > .primary { grid-column:1; justify-self:start; border-radius:3px; min-height:52px; gap:40px; padding:15px 24px; font-size:.85rem }
+.word-art { position:relative; grid-column:2; grid-row:2/5; align-self:center; width:100%; top:auto; right:auto; gap:13px; transform:rotate(-7deg); padding:12px 0 }
+.word-art span { font-size:2.6rem; line-height:1.15; padding:10px 30px; background:transparent; border-color:var(--line); color:var(--muted) }
+.word-art span:nth-child(2n) { transform:translateX(16px); background:var(--soft) }
+.word-art span:last-child { font-size:3.5rem; padding:10px 38px; color:var(--accent); background:var(--panel) }
+.method { padding-top:24px; padding-bottom:24px }
+.method > h2 { font-size:.76rem; letter-spacing:.06em; font-weight:550; margin-bottom:36px }
+.steps { gap:0; margin-top:0 }
+.steps article { padding:0 32px; border-left:1px solid var(--line) }
+.steps article:first-child { padding-left:0; border-left:0 }
+.steps article:last-child { padding-right:0 }
+.step-number { font-size:3.5rem; line-height:1; margin-bottom:28px; letter-spacing:-.07em }
+.steps h3 { font-size:.98rem; font-weight:600; margin-bottom:12px }
+.steps p { font-size:.88rem; line-height:1.85; max-width:270px; margin-bottom:0 }
+main:has(.choose-page) { padding-top:28px }
+.choose-page { padding-top:8px }
+.page-title h1,.choose-page .page-title h1 { font-family:var(--font-display); font-size:clamp(2.5rem,4vw,3.5rem); font-weight:500; line-height:1.12; letter-spacing:-.05em; margin-bottom:12px; text-wrap:balance }
+.guidance,.choose-page .guidance { font-size:.85rem; line-height:1.7; margin-bottom:28px }
+.choose-filter-panel { background:transparent; border-width:1px 0; border-radius:0; padding:14px 0 }
+.choose-controls { gap:28px; grid-template-columns:1fr 1.35fr 1fr 1.2fr }
+.choose-controls > label,.choose-controls legend { font-size:.7rem; color:var(--muted) }
+.choose-controls input[type=number],.choose-controls select { border-color:transparent; border-radius:3px; background:transparent; color:var(--text); font-size:.8rem; min-height:40px }
+.choose-controls .segmented span { border-color:transparent; border-radius:3px; padding:11px 12px; font-size:.75rem }
+.choose-controls .segmented input:checked+span { border-color:var(--line) }
+.swipe-workspace { grid-template-columns:minmax(0,1fr) 268px; gap:48px; margin-top:24px }
+.swipe-stage { padding:0 20px }
+.deck-meta { font-size:.68rem; margin-bottom:14px; gap:12px }
+.choose-page .overview-open { background:transparent; border-radius:3px; margin-left:0; min-height:32px; font-size:.68rem }
+.choose-page .swipe-card { border-radius:8px; box-shadow:0 18px 36px -30px var(--text) }
+.choose-page .card-topline { inset:24px 28px auto; font-size:.7rem; letter-spacing:.025em; padding-bottom:16px; border-bottom:1px solid var(--line) }
+.choose-page .swipe-card h2 { font-size:clamp(3.5rem,7vw,6.5rem); line-height:1.08; letter-spacing:-.06em; margin:32px 0 18px }
+.choose-page .card-occurrences { font-size:.76rem; letter-spacing:.025em; margin-bottom:18px }
+.choose-page .card-pronounce { border-radius:50px; padding:10px 16px }
+.choose-page .card-rule { font-size:1.3rem; bottom:22px }
+.swipe-actions { gap:10px }
+.swipe-actions button { min-height:48px; border-radius:4px; padding:12px 20px; font-size:.76rem }
+.choose-page #keep { background:var(--accent); color:var(--panel); min-width:112px }
+.swipe-actions #skip { background:transparent }
+.swipe-actions .swipe-undo { border-color:transparent }
+.swipe-keys { margin-top:14px; font-size:.65rem; letter-spacing:.025em }
+.workspace .shortlist { margin-top:0; padding:4px 0 28px 24px; border-width:0 0 0 1px; border-radius:0; background:transparent }
+.shortlist .section-heading { margin-bottom:22px }
+.shortlist h2 { font-size:.78rem; font-weight:550; letter-spacing:.04em }
+.shortlist .badge { background:transparent; padding:3px 0 3px 12px; border-left:1px solid var(--line); border-radius:0; font:italic 1.25rem var(--font-display) }
+.shortlist p { font-size:.82rem; line-height:1.9; max-width:210px }
+.shortlist .name-speak { font:400 1.3rem var(--font-display); padding:12px 6px }
+.shortlist .name-speak span { font-size:.85rem }
+.shortlist .icon-button { background:transparent; font-size:1rem; min-height:40px }
+:is(.choose-page,.results) .speech { border-top:1px solid var(--line); border-bottom:0; margin-top:24px; padding-top:20px; line-height:1.7 }
+.overview-bar { padding:24px clamp(20px,4vw,56px); box-shadow:none }
+.overview-bar h2 { font-size:1.8rem; letter-spacing:-.035em }
+.overview-bar p { margin-top:8px; font-size:.7rem; line-height:1.6 }
+#overview-close { border-radius:3px; min-height:44px; font-size:.75rem }
+.hero .primary,.choose-page button,#overview-close { transition:transform 180ms ease,opacity 180ms ease }
+.hero .primary span { transition:transform 180ms ease }
+@media(hover:hover) {
+  .hero .primary:hover span { transform:translate(3px,-3px) }
+  .choose-page .swipe-actions button:hover:not(:disabled),.choose-page .overview-open:hover { transform:translateY(-2px) }
+  #choose-shortlist .icon-button:hover { transform:translateY(-2px) }
+}
+.hero .primary:active,.choose-page button:active:not(:disabled),#overview-close:active { transform:scale(.97) }
+.hero a:focus-visible,.choose-page :is(button,input,select,summary):focus-visible,#overview-close:focus-visible { outline:2px solid var(--accent); outline-offset:4px }
+@media(max-width:900px) {
+  .hero { column-gap:28px; grid-template-columns:minmax(0,1.6fr) minmax(0,1fr) }
+  .word-art { display:flex }
+  .word-art span { font-size:2rem; padding:10px 18px }
+  .swipe-workspace { grid-template-columns:minmax(0,1fr); gap:36px }
+  .workspace .shortlist { border-width:1px 0 0; border-radius:0; padding:24px 0; background:transparent }
+  .shortlist p { max-width:420px }
+  .choose-controls.is-open { gap:20px; padding:18px 0 4px }
+}
+@media(max-width:600px) {
+  .hero { display:block; padding:8px 0 48px }
+  .hero-colophon { gap:16px; margin-bottom:34px; padding-bottom:16px; font-size:.58rem; letter-spacing:.06em }
+  .hero-colophon span:first-child { max-width:55% }
+  .hero h1 { font-size:clamp(3.1rem,12.8vw,4.6rem); line-height:1.08; margin-bottom:24px }
+  .hero .intro { font-size:.92rem; line-height:1.85; margin-bottom:28px }
+  .hero > .primary { min-height:50px; padding:14px 22px }
+  .word-art { display:none }
+  .method { padding-top:22px }
+  .method > h2 { font-size:.72rem; margin-bottom:28px }
+  .steps { gap:0 }
+  .steps article,.steps article:first-child,.steps article:last-child { position:relative; padding:24px 0 24px 64px; border-left:0; border-top:1px solid var(--line) }
+  .steps article:first-child { border-top:0; padding-top:0 }
+  .step-number { font-size:2.65rem; top:24px; margin:0 }
+  .steps article:first-child .step-number { top:0 }
+  .steps p { max-width:none; font-size:.84rem }
+  main:has(.choose-page) { padding-top:24px }
+  .choose-page .page-title h1 { font-size:2.5rem }
+  .choose-page .guidance { font-size:.78rem; margin-bottom:20px }
+  .choose-filter-panel { padding:8px 0 }
+  #choose-filters-toggle { min-height:44px; gap:12px }
+  .swipe-workspace { margin-top:18px; gap:32px }
+  .swipe-stage { padding:0 2px }
+  .deck-meta { gap:8px; font-size:.62rem; margin-bottom:12px }
+  .choose-page .overview-open { padding:5px 8px; font-size:.65rem }
+  .choose-page .swipe-card { padding:20px 18px; border-radius:6px }
+  .choose-page .card-topline { inset:20px 18px auto; font-size:.65rem; padding-bottom:14px }
+  .choose-page .swipe-card h2 { font-size:clamp(2.8rem,14vw,4.5rem); margin-top:36px; letter-spacing:-.055em }
+  .choose-page .card-occurrences { font-size:.72rem; margin-bottom:8px }
+  .swipe-actions { gap:6px }
+  .swipe-actions button { padding:11px 12px; font-size:.7rem; min-height:46px }
+  .choose-page #keep { min-width:86px }
+  .overview-bar { padding:18px 16px; gap:12px; align-items:flex-start }
+  .overview-bar h2 { font-size:1.35rem }
+  .overview-bar p { display:block; font-size:.65rem; max-width:190px }
+  #overview-close { padding:10px 12px; font-size:.68rem }
+}
+@media(prefers-color-scheme:dark) {
+  body { --background:#18201c; --panel:#202b24; --text:#e9e8dc; --muted:#acb6a8; --line:#3c493f; --accent:#b4c8a1; --soft:#2e3e30 }
+  .hero > .primary { background:var(--accent); color:var(--background) }
+  .choose-page #keep,#overview-close { color:var(--background) }
+}
+@media(prefers-reduced-motion:reduce) {
+  .hero .primary,.hero .primary span,.choose-page button,#overview-close { transition:none }
+}
+/* ui-demo r2: keep CJK phrases intact, tighter choose header so the stack sits above the fold */
+.hero h1 { word-break:keep-all; overflow-wrap:anywhere }
+main:has(.choose-page) { padding-top:16px }
+.choose-page .page-title h1 { font-size:clamp(2.1rem,3vw,2.75rem); margin-bottom:6px }
+.choose-page .guidance { margin-bottom:16px }
+@media (min-width:761px) and (max-height:860px){ main:has(.choose-page){padding-top:6px} .choose-page .page-title h1{font-size:2rem;margin-bottom:2px} .choose-page .guidance{margin-bottom:8px} .choose-filter-panel{padding:6px 0} }
+/* ui-demo r3: stack height follows the taller editorial header so card + actions + key hint stay above the fold */
+.swipe-stack { height:clamp(280px,calc(100svh - 530px),460px) }
+@media (max-width:760px){ .swipe-stack { height:clamp(210px,calc(100svh - 505px),340px) } }
+
+/* Shared chrome and the browse / handle workspaces. */
+header { gap:16px }
+.brand { min-width:0; font-weight:600; letter-spacing:-.025em }
+.brand-icon { flex-shrink:0; border-radius:4px; background:var(--accent); color:var(--background) }
+.locale { flex-shrink:0; font-size:.75rem; color:var(--muted) }
+nav { flex-wrap:wrap; overflow:visible; gap:4px 16px }
+nav a { white-space:normal; padding:9px 0; border-radius:0; font-size:.78rem; border-bottom:1px solid transparent; text-wrap:balance }
+nav a[aria-current] { background:transparent; border-bottom-color:var(--accent); font-weight:600 }
+footer { font-size:.72rem; line-height:1.8 }
+footer p { font-size:.66rem; text-wrap:pretty }
+.page-title > div,.workspace > * { min-width:0 }
+.page-title h1,.check-panel h1,#deck-end h2 {
+  font-family:var(--font-display);
+  font-weight:500;
+  text-wrap:balance;
+  word-break:keep-all;
+  overflow-wrap:anywhere;
+}
+.check-panel h1 { font-size:clamp(2.5rem,4vw,3.5rem); line-height:1.12; letter-spacing:-.05em; margin-bottom:28px }
+.guidance,.handle-steps,.shortlist p,#deck-end p { text-wrap:pretty; overflow-wrap:anywhere }
+.eyebrow { font-size:.68rem; letter-spacing:.12em; font-weight:500; color:var(--muted) }
+main > .panel,.results { background:transparent; border-width:1px 0 0; border-radius:0; padding:24px 0 }
+main > .panel:has(.query) { border-bottom-width:1px; padding:18px 0 }
+.workspace:not(.swipe-workspace) { grid-template-columns:minmax(0,1fr) 268px; gap:48px; margin-top:32px }
+.query { gap:32px; align-items:center }
+.query > label,.query legend,.speech-fields label,.handle-shortlist legend,#handle-form label,.letters legend { font-size:.7rem; color:var(--muted) }
+.query input,.query .segmented span { background:transparent; border-color:transparent; border-radius:4px; font-size:.8rem }
+.query .segmented span { display:block; padding:11px 18px }
+.query .segmented input:checked+span { border-color:var(--line) }
+.query small { font-size:.65rem }
+.results > .section-heading h2 { font-size:.78rem; font-weight:550; letter-spacing:.04em }
+.results .speech { margin-top:0; margin-bottom:24px; font-size:.75rem }
+.speech-fields label { min-width:0; flex-basis:160px }
+.speech-fields select { min-width:0; max-width:100%; font-size:.8rem; background:transparent }
+.speech p { margin:16px 0 0; line-height:1.8; text-wrap:pretty }
+.letters { margin-bottom:28px }
+.letters legend { margin-bottom:12px }
+.letters button { background:transparent; min-height:36px }
+.letters button[aria-pressed=true] { background:var(--accent); color:var(--background) }
+.table-scroll { overflow:visible }
+table { table-layout:fixed; white-space:normal; font-size:.78rem }
+th,td { padding:14px 8px; overflow-wrap:anywhere }
+th { font-size:.68rem; line-height:1.6 }
+th:first-child,td:first-child { width:14%; padding-left:0 }
+th:nth-child(2),td:nth-child(2) { width:40% }
+th:last-child,td:last-child { text-align:right; padding-right:0 }
+td button { background:transparent; padding:6px 0; text-align:left; font:400 1.2rem var(--font-display); max-width:100%; overflow-wrap:anywhere }
+td button[aria-pressed=true] { color:var(--accent) }
+.pagination { flex-wrap:wrap; gap:8px; margin-top:28px; color:var(--muted) }
+.pagination button { background:transparent; min-height:40px }
+.shortlist li { gap:8px }
+.shortlist li > div { display:flex; flex-shrink:0 }
+main > .shortlist { position:static; max-width:700px; margin-top:40px }
+.check-panel { max-width:700px; margin-bottom:0 }
+.handle-steps { padding-left:24px; margin-bottom:32px; font-size:.88rem; line-height:1.9 }
+.handle-steps li { padding-left:8px }
+.handle-steps li::marker { font:italic 1rem var(--font-display); color:var(--accent) }
+.handle-shortlist { border-top:1px solid var(--line); padding-top:18px; margin-bottom:28px }
+.handle-shortlist legend { padding-right:12px }
+.handle-shortlist button { background:transparent; font:400 1.1rem var(--font-display); overflow-wrap:anywhere; max-width:100% }
+#handle-form { border-top:1px solid var(--line); padding-top:24px; gap:24px }
+#handle-form input { background:transparent; font-size:1rem; min-width:0 }
+#profile-links:not(:empty) { margin-top:32px; border-top:1px solid var(--line) }
+#profile-links > p { font-size:.8rem; line-height:1.8; text-wrap:pretty }
+.profile-link { align-items:center; font-weight:500; font-size:.95rem; line-height:1.6; overflow-wrap:anywhere }
+.profile-link span { font-size:.72rem; text-align:right }
+.status,main > [role=status],main > [role=alert],.results > [role=alert],.swipe-stage > [role=alert] {
+  border-top:1px solid var(--line); padding:32px 0; margin:0 0 16px;
+  font-size:.85rem; line-height:1.9; color:var(--muted); text-wrap:pretty; overflow-wrap:anywhere;
+}
+#deck-end { border-width:1px 0; border-radius:0; background:transparent; padding:32px 12px; min-height:clamp(280px,calc(100svh - 530px),460px) }
+#deck-end h2 { font-size:clamp(2rem,3.5vw,3rem); line-height:1.15; letter-spacing:-.045em; margin-bottom:12px }
+#deck-end .eyebrow { margin-bottom:8px }
+#deck-end p { font-size:.82rem; line-height:1.8 }
+header button,main:not(:has(.choose-page)) button,main:not(:has(.choose-page)) input,main:not(:has(.choose-page)) select,.primary { border-radius:4px }
+header button,main button,main .primary { transition:transform 180ms ease,opacity 180ms ease }
+.primary { font-size:.8rem; background:var(--accent); color:var(--background) }
+.primary:hover:not(:disabled) { background:var(--accent); color:var(--background); opacity:.9 }
+header button:active:not(:disabled),main button:active:not(:disabled),main .primary:active { transform:scale(.97) }
+a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible,.segmented input:focus-visible+span { outline:2px solid var(--accent); outline-offset:4px }
+@media(max-width:900px) {
+  .workspace:not(.swipe-workspace) { grid-template-columns:minmax(0,1fr); gap:32px }
+}
+@media(max-width:600px) {
+  nav { padding-right:16px; padding-left:16px; gap:4px 14px }
+  nav a { font-size:.7rem }
+  .brand { gap:8px; font-size:.85rem }
+  .brand-icon { width:34px; height:34px; font-size:1.4rem }
+  .locale { padding:8px; font-size:.7rem }
+  .page-title { align-items:flex-start }
+  .page-title h1,.check-panel h1 { font-size:2.5rem }
+  .page-title > button { flex-shrink:0; font-size:.72rem }
+  .query { gap:20px; align-items:flex-start }
+  .query > label { flex:1; min-width:0 }
+  .query .segmented span { padding:11px 12px }
+  .query > .primary { min-height:46px }
+  .workspace:not(.swipe-workspace) { margin-top:24px }
+  th,td { padding:12px 4px; font-size:.72rem }
+  th { font-size:.62rem }
+  td button { font-size:1.05rem }
+  .shortlist p { max-width:100% }
+  .handle-steps { font-size:.82rem; padding-left:20px }
+  #handle-form { gap:16px }
+  #handle-form label { min-width:0 }
+  #deck-end { min-height:clamp(210px,calc(100svh - 505px),340px) }
+  footer { padding:24px 16px 28px }
+}
+@media(prefers-reduced-motion:reduce) {
+  header button,main button,main .primary { transition:none }
+}
+/* pages r2: readability floor on mobile, tidy shortlist count */
+.shortlist .badge { border:1px solid var(--line); border-radius:999px; min-width:24px; padding:1px 8px; font:500 .72rem/1.6 var(--font-ui); text-align:center; background:transparent; color:var(--muted) }
+@media (max-width:760px){
+  nav a { font-size:.8rem }
+  .locale { font-size:.78rem }
+  .handle-steps { font-size:.9rem; line-height:1.8 }
+  .guidance,.shortlist p,#deck-end p { font-size:.88rem }
+  .query > label,.query legend,#handle-form label,.letters legend { font-size:.76rem }
+  table { font-size:.84rem }
+}
+
+/* Sans editorial type: compact display rhythm, quiet UI labels. */
+body { font-weight:400 }
+button,.locale,.primary { font-weight:550 }
+h1,.page-title h1,.choose-page .page-title h1,.check-panel h1,
+.hero h1,.swipe-card h2,#deck-end h2,.overview-bar h2 {
+  font-weight:740;
+  font-style:normal;
+  letter-spacing:-.045em;
+  line-height:1;
+}
+h2,h3 { font-weight:700 }
+.hero h1 { line-height:1.02 }
+.eyebrow,.hero-colophon,.method > h2,.shortlist h2,
+.results > .section-heading h2 {
+  font-weight:500;
+  letter-spacing:.08em;
+}
+.word-art span,.step-number,.card-rule,.handle-steps li::marker {
+  font-weight:650;
+  font-style:normal;
+  letter-spacing:-.035em;
+}
+.step-number { line-height:1 }
+.overview-card strong,.shortlist .name-speak,td button,.handle-shortlist button {
+  font-weight:720;
+  font-style:normal;
+  letter-spacing:-.04em;
+  line-height:1.05;
+}
+.overview-card.is-long strong { font-size:1.35rem }
+/* Leave room for eleven-letter names in the existing, fixed card geometry. */
+.choose-page .swipe-card h2 {
+  font-size:clamp(2rem,4.8vw,4.5rem);
+  font-weight:740;
+  letter-spacing:-.045em;
+  line-height:1;
+}
+:is(h1,.page-title h1,.check-panel h1,.hero h1,#deck-end h2,.overview-bar h2):lang(zh),
+html[lang^="zh"] :is(h1,.page-title h1,.check-panel h1,.hero h1,#deck-end h2,.overview-bar h2) {
+  font-weight:700;
+  letter-spacing:-.01em;
+  line-height:1.15;
+}
+/* Preserve the choose header's previous height with the taller CJK leading. */
+html[lang^="zh"] .choose-page .page-title h1 {
+  font-size:clamp(2rem,2.9vw,2.65rem);
+}
+@media (min-width:761px) and (max-height:860px) {
+  html[lang^="zh"] .choose-page .page-title h1 { font-size:1.94rem }
+}
+@media (max-width:600px) {
+  .choose-page .swipe-card h2 { font-size:clamp(2rem,11vw,4rem) }
+}
