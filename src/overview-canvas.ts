@@ -39,13 +39,15 @@ export function startOverviewCanvas(el: HTMLElement, reduced: boolean, onDrag: (
     let frame = 0;
     const tick = (now: number) => {
         const dt = Math.min((now - last) / 1000, .05); last = now;
-        if (active && pointer === null && !reduced) {
+        if (pointer === null && !reduced && (vx || vy || active)) {
             const sx = decayStep(vx, dt * 1000), sy = decayStep(vy, dt * 1000);
             x += sx.distance; y += sy.distance; vx = sx.velocity; vy = sy.velocity;
+            // Closing: inertia keeps gliding but bleeds out faster (continuous, monotonic), never zeroed on the click.
+            if (!active) { const f = Math.exp(-dt / .18); vx *= f; vy *= f; if (Math.hypot(vx, vy) < .5) vx = vy = 0; }
         }
-        // Drift speed eases in on open (~1.2s) and out on close (~0.45s): the marquee never starts or stops on a step.
+        // Drift speed eases in on open (~1.2s) and out on close (~0.6s): the marquee never starts or stops on a step.
         const want = active && pointer === null && !reduced ? 1 : 0;
-        speed = want ? Math.min(1, speed + dt / 1.2) : Math.max(0, speed - dt / .45);
+        speed = want ? Math.min(1, speed + dt / 1.2) : Math.max(0, speed - dt / .6);
         if (speed) drift.forEach((_, i) => drift[i] += (i % 2 ? 1 : -1) * width / rowDuration(i) * dt * speed * speed * (3 - 2 * speed));
         x = wrap(x, width); y = wrap(y, height);
         const h = hintStart ? Math.min(1, (now - hintStart) / 900) : 0;
@@ -97,7 +99,7 @@ export function startOverviewCanvas(el: HTMLElement, reduced: boolean, onDrag: (
     };
     stage.addEventListener('wheel', wheel, { passive: false });
     return {
-        setActive(value: boolean) { if (!value) { stopNudge(); draw(); } active = value; resume = performance.now(); vx = vy = 0; },
+        setActive(value: boolean) { if (!value) { stopNudge(); draw(); } else vx = vy = 0; active = value; resume = performance.now(); },
         resume() { if (!frame) { last = performance.now(); frame = requestAnimationFrame(tick); } },
         nudge() { hintStart = performance.now(); },
         panBy(dx: number, dy: number) { x = wrap(x + dx, width); y = wrap(y + dy, height); draw(); },

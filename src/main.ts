@@ -205,7 +205,7 @@ function choosePage() {
 }
 let overviewEl: HTMLElement | null = null;
 let overviewCanvas: ReturnType<typeof startOverviewCanvas> | undefined;
-let camera: { p: number; velocity: number; target: number; frame: number; last: number; focal: HTMLElement; anchor: HTMLElement; top: HTMLElement; dim: HTMLElement[]; S: DOMRect; cw: number; ch: number; tx: number; ty: number; s0: number } | undefined;
+let camera: { p: number; velocity: number; target: number; frame: number; last: number; focal: HTMLElement; anchor: HTMLElement; rider: HTMLElement; top: HTMLElement; dim: HTMLElement[]; S: DOMRect; cw: number; ch: number; tx: number; ty: number; s0: number } | undefined;
 let hintTimer = 0, ignorePop = false, lockY = 0;
 // The page under the overview must never move (the real top card flies from/to its resting rect).
 window.addEventListener('scroll', () => { if (overviewEl && scrollY !== lockY) window.scrollTo({ top: lockY, behavior: 'instant' }); });
@@ -246,7 +246,7 @@ function resetCameraCard(c: NonNullable<typeof camera>) {
 function measureCamera(focal: HTMLElement) {
     const el = overviewEl!, plane = el.querySelector<HTMLElement>('.overview-plane')!;
     const top = document.querySelector<HTMLElement>('.swipe-card.is-top')!;
-    if (camera) { camera.anchor.remove(); camera.focal.classList.remove('is-focal'); camera.focal.style.opacity = ''; resetCameraCard(camera); }
+    if (camera) { camera.anchor.remove(); camera.rider.remove(); camera.focal.style.position = ''; camera.focal.classList.remove('is-focal'); camera.focal.style.opacity = ''; resetCameraCard(camera); }
     const focalRow = focal.closest('.overview-row');
     el.querySelectorAll('.overview-row.is-focal-row').forEach(r => { if (r !== focalRow) r.classList.remove('is-focal-row'); });
     focalRow?.classList.add('is-focal-row');
@@ -265,8 +265,12 @@ function measureCamera(focal: HTMLElement) {
     const anchor = document.createElement('i');
     Object.assign(anchor.style, { position: 'absolute', left: `${P.width / 2 + cx}px`, top: `${P.height / 2 + cy}px`, width: '0', height: '0', pointerEvents: 'none' });
     anchor.setAttribute('aria-hidden', 'true'); plane.append(anchor);
+    // A second point riding on the focal tile itself: it keeps the marquee drift / inertia the fixed anchor ignores.
+    const rider = document.createElement('i');
+    Object.assign(rider.style, { position: 'absolute', left: '50%', top: '50%', width: '0', height: '0', pointerEvents: 'none' });
+    rider.setAttribute('aria-hidden', 'true'); focal.style.position = 'relative'; focal.append(rider);
     const old = camera;
-    camera = { anchor, p: old?.p ?? 0, velocity: old?.velocity ?? 0, target: old?.target ?? 1, frame: old?.frame ?? 0, last: performance.now(), focal, top, dim: dimTargets(top), S,
+    camera = { anchor, rider, p: old?.p ?? 0, velocity: old?.velocity ?? 0, target: old?.target ?? 1, frame: old?.frame ?? 0, last: performance.now(), focal, top, dim: dimTargets(top), S,
         cw: C.width, ch: C.height, s0,
         tx: S.x + S.width / 2 - (P.x + P.width / 2) - s0 * cx,
         ty: S.y + S.height / 2 - (P.y + P.height / 2) - s0 * cy };
@@ -291,8 +295,9 @@ function drawCamera() {
     for (const n of c.dim) n.style.opacity = dimmed;
     if (reduced) { c.focal.style.opacity = ''; return; }
     // The real card flies to the focal tile's projected centre; at p=0 every term is exactly identity.
-    const F = c.anchor.getBoundingClientRect();
-    const m = smoothstep(0, .35, p);
+    // Follow the still-moving tile while it is visible; blend to the fixed anchor as the card takes over, so p=0 is exact.
+    const m = smoothstep(0, .35, p), A = c.anchor.getBoundingClientRect(), R = c.rider.getBoundingClientRect(), w = smoothstep(.15, .4, p);
+    const F = { x: A.x + (R.x - A.x) * w, y: A.y + (R.y - A.y) * w, width: 0, height: 0 };
     const sx = lerp(1, k * c.cw / c.S.width, m), sy = lerp(1, k * c.ch / c.S.height, m);
     const dx = (F.x + F.width/2 - c.S.x - c.S.width/2), dy = (F.y + F.height/2 - c.S.y - c.S.height/2);
     c.top.style.transform = Math.abs(p) < 1e-5 ? '' : `translate(${dx}px,${dy}px) perspective(1400px) rotateX(${18*p}deg) rotateZ(${-22*p}deg) scale(${sx},${sy})`;
@@ -302,7 +307,7 @@ function drawCamera() {
 const morphLive = () => !!camera;
 function clearOverviewMorph() {
     if (!camera) return;
-    camera.focal.style.opacity = ''; camera.focal.classList.remove('is-focal'); camera.anchor.remove();
+    camera.focal.style.opacity = ''; camera.focal.classList.remove('is-focal'); camera.anchor.remove(); camera.rider.remove(); camera.focal.style.position = '';
     resetCameraCard(camera);
 }
 function runCamera() {
