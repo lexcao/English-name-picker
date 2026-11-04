@@ -694,9 +694,9 @@ main:has(.choose-page) { padding-top:14px }
 .swipe-keys { font-size:.7rem; margin:8px 0 0 }
 .choose-page .speech { text-align:left; margin:16px 0 0; padding:12px 0; font-size:.75rem }
 #choose-shortlist { min-width:0; scroll-margin-top:24px }
-#choose-shortlist .shortlist { position:static; background:transparent; border-width:0 0 0 1px; border-radius:0; padding:0 0 20px 24px; margin-top:22px }
+#choose-shortlist .shortlist { position:static }
 /* Give the flex item a shrinkable text box and inset glyphs from the button clip edge. */
-#choose-shortlist .name-speak { flex:1; min-width:0; padding:8px 6px; background:transparent; overflow-wrap:anywhere; text-align:left; appearance:none; overflow:visible }
+.shortlist .name-speak { flex:1; min-width:0; padding:8px 6px; background:transparent; overflow-wrap:anywhere; text-align:left; appearance:none; overflow:visible }
 #choose-shortlist li { gap:8px }
 #choose-shortlist li > div { display:flex; flex-shrink:0 }
 #deck-end { min-height:420px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; margin-bottom:12px }
@@ -704,7 +704,6 @@ main:has(.choose-page) { padding-top:14px }
 #deck-end p { margin-bottom:0 }
 @media(max-width:900px) {
   .swipe-workspace { grid-template-columns:minmax(0,1fr); gap:16px }
-  #choose-shortlist .shortlist { border:1px solid var(--line); border-radius:18px; padding:20px; background:var(--panel); margin-top:0 }
   #choose-filters-toggle { display:flex; align-items:center; gap:10px; width:100%; border:0; padding:4px 0; background:transparent; text-align:left; font-size:.8rem; min-height:36px }
   #choose-filters-toggle span:nth-child(2) { flex:1; font-size:.7rem; color:var(--muted); line-height:1.5 }
   .choose-controls { display:none }
@@ -817,9 +816,9 @@ body.overview-lock { overflow:hidden }
 @media (prefers-reduced-motion:reduce){ .overview-row, #overview.is-revealed .overview-row { translate:none; transition:opacity .2s linear } }
 .overview-row.is-focal-row, #overview.is-revealed .overview-row.is-focal-row { translate:none }
 
-/* Editorial surfaces, scoped to the home and choose routes. Deck and camera
-   transforms, transitions and tint layers remain owned by the rules above. */
-body:has(.hero),body:has(.choose-page) {
+/* Shared editorial palette and typography. Deck and camera motion remain
+   owned by the rules above. */
+body {
   --background:#f5f2e9;
   --panel:#fcfaf4;
   --text:#233b31;
@@ -849,8 +848,8 @@ body:has(.hero),body:has(.choose-page) {
 .steps p { font-size:.88rem; line-height:1.85; max-width:270px; margin-bottom:0 }
 main:has(.choose-page) { padding-top:28px }
 .choose-page { padding-top:8px }
-.choose-page .page-title h1 { font-family:Georgia,"Songti SC",serif; font-size:clamp(2.5rem,4vw,3.5rem); font-weight:500; line-height:1.12; letter-spacing:-.05em; margin-bottom:12px; text-wrap:balance }
-.choose-page .guidance { font-size:.85rem; line-height:1.7; margin-bottom:28px }
+.page-title h1,.choose-page .page-title h1 { font-family:Georgia,"Songti SC",serif; font-size:clamp(2.5rem,4vw,3.5rem); font-weight:500; line-height:1.12; letter-spacing:-.05em; margin-bottom:12px; text-wrap:balance }
+.guidance,.choose-page .guidance { font-size:.85rem; line-height:1.7; margin-bottom:28px }
 .choose-filter-panel { background:transparent; border-width:1px 0; border-radius:0; padding:14px 0 }
 .choose-controls { gap:28px; grid-template-columns:1fr 1.35fr 1fr 1.2fr }
 .choose-controls > label,.choose-controls legend { font-size:.7rem; color:var(--muted) }
@@ -873,15 +872,15 @@ main:has(.choose-page) { padding-top:28px }
 .swipe-actions #skip { background:transparent }
 .swipe-actions .swipe-undo { border-color:transparent }
 .swipe-keys { margin-top:14px; font-size:.65rem; letter-spacing:.025em }
-#choose-shortlist .shortlist { margin-top:0; padding:4px 0 28px 24px }
-#choose-shortlist .section-heading { margin-bottom:22px }
-#choose-shortlist h2 { font-size:.78rem; font-weight:550; letter-spacing:.04em }
-#choose-shortlist .badge { background:transparent; padding:3px 0 3px 12px; border-left:1px solid var(--line); border-radius:0; font:italic 1.25rem Georgia,serif }
-#choose-shortlist .shortlist p { font-size:.82rem; line-height:1.9; max-width:210px }
-#choose-shortlist .name-speak { font:400 1.3rem Georgia,"Songti SC",serif; padding:12px 6px }
-#choose-shortlist .name-speak span { font-size:.85rem }
-#choose-shortlist .icon-button { background:transparent; font-size:1rem; min-height:40px }
-.choose-page .speech { border-top:1px solid var(--line); border-bottom:0; margin-top:24px; padding-top:20px; line-height:1.7 }
+.workspace .shortlist { margin-top:0; padding:4px 0 28px 24px; border-width:0 0 0 1px; border-radius:0; background:transparent }
+.shortlist .section-heading { margin-bottom:22px }
+.shortlist h2 { font-size:.78rem; font-weight:550; letter-spacing:.04em }
+.shortlist .badge { background:transparent; padding:3px 0 3px 12px; border-left:1px solid var(--line); border-radius:0; font:italic 1.25rem Georgia,serif }
+.shortlist p { font-size:.82rem; line-height:1.9; max-width:210px }
+.shortlist .name-speak { font:400 1.3rem Georgia,"Songti SC",serif; padding:12px 6px }
+.shortlist .name-speak span { font-size:.85rem }
+.shortlist .icon-button { background:transparent; font-size:1rem; min-height:40px }
+:is(.choose-page,.results) .speech { border-top:1px solid var(--line); border-bottom:0; margin-top:24px; padding-top:20px; line-height:1.7 }
 .overview-bar { padding:24px clamp(20px,4vw,56px); box-shadow:none }
 .overview-bar h2 { font-size:1.8rem; letter-spacing:-.035em }
 .overview-bar p { margin-top:8px; font-size:.7rem; line-height:1.6 }
@@ -900,8 +899,8 @@ main:has(.choose-page) { padding-top:28px }
   .word-art { display:flex }
   .word-art span { font-size:2rem; padding:10px 18px }
   .swipe-workspace { grid-template-columns:minmax(0,1fr); gap:36px }
-  #choose-shortlist .shortlist { border-width:1px 0 0; border-radius:0; padding:24px 0; background:transparent }
-  #choose-shortlist .shortlist p { max-width:420px }
+  .workspace .shortlist { border-width:1px 0 0; border-radius:0; padding:24px 0; background:transparent }
+  .shortlist p { max-width:420px }
   .choose-controls.is-open { gap:20px; padding:18px 0 4px }
 }
 @media(max-width:600px) {
@@ -942,7 +941,7 @@ main:has(.choose-page) { padding-top:28px }
   #overview-close { padding:10px 12px; font-size:.68rem }
 }
 @media(prefers-color-scheme:dark) {
-  body:has(.hero),body:has(.choose-page) { --background:#18201c; --panel:#202b24; --text:#e9e8dc; --muted:#acb6a8; --line:#3c493f; --accent:#b4c8a1; --soft:#2e3e30 }
+  body { --background:#18201c; --panel:#202b24; --text:#e9e8dc; --muted:#acb6a8; --line:#3c493f; --accent:#b4c8a1; --soft:#2e3e30 }
   .hero > .primary { background:var(--accent); color:var(--background) }
   .choose-page #keep,#overview-close { color:var(--background) }
 }
@@ -958,3 +957,124 @@ main:has(.choose-page) { padding-top:16px }
 /* ui-demo r3: stack height follows the taller editorial header so card + actions + key hint stay above the fold */
 .swipe-stack { height:clamp(280px,calc(100svh - 530px),460px) }
 @media (max-width:760px){ .swipe-stack { height:clamp(210px,calc(100svh - 505px),340px) } }
+
+/* Shared chrome and the browse / handle workspaces. */
+header { gap:16px }
+.brand { min-width:0; font-weight:600; letter-spacing:-.025em }
+.brand-icon { flex-shrink:0; border-radius:4px; background:var(--accent); color:var(--background) }
+.locale { flex-shrink:0; font-size:.75rem; color:var(--muted) }
+nav { flex-wrap:wrap; overflow:visible; gap:4px 16px }
+nav a { white-space:normal; padding:9px 0; border-radius:0; font-size:.78rem; border-bottom:1px solid transparent; text-wrap:balance }
+nav a[aria-current] { background:transparent; border-bottom-color:var(--accent); font-weight:600 }
+footer { font-size:.72rem; line-height:1.8 }
+footer p { font-size:.66rem; text-wrap:pretty }
+.page-title > div,.workspace > * { min-width:0 }
+.page-title h1,.check-panel h1,#deck-end h2 {
+  font-family:Georgia,"Songti SC",serif;
+  font-weight:500;
+  text-wrap:balance;
+  word-break:keep-all;
+  overflow-wrap:anywhere;
+}
+.check-panel h1 { font-size:clamp(2.5rem,4vw,3.5rem); line-height:1.12; letter-spacing:-.05em; margin-bottom:28px }
+.guidance,.handle-steps,.shortlist p,#deck-end p { text-wrap:pretty; overflow-wrap:anywhere }
+.eyebrow { font-size:.68rem; letter-spacing:.12em; font-weight:500; color:var(--muted) }
+main > .panel,.results { background:transparent; border-width:1px 0 0; border-radius:0; padding:24px 0 }
+main > .panel:has(.query) { border-bottom-width:1px; padding:18px 0 }
+.workspace:not(.swipe-workspace) { grid-template-columns:minmax(0,1fr) 268px; gap:48px; margin-top:32px }
+.query { gap:32px; align-items:center }
+.query > label,.query legend,.speech-fields label,.handle-shortlist legend,#handle-form label,.letters legend { font-size:.7rem; color:var(--muted) }
+.query input,.query .segmented span { background:transparent; border-color:transparent; border-radius:4px; font-size:.8rem }
+.query .segmented span { display:block; padding:11px 18px }
+.query .segmented input:checked+span { border-color:var(--line) }
+.query small { font-size:.65rem }
+.results > .section-heading h2 { font-size:.78rem; font-weight:550; letter-spacing:.04em }
+.results .speech { margin-top:0; margin-bottom:24px; font-size:.75rem }
+.speech-fields label { min-width:0; flex-basis:160px }
+.speech-fields select { min-width:0; max-width:100%; font-size:.8rem; background:transparent }
+.speech p { margin:16px 0 0; line-height:1.8; text-wrap:pretty }
+.letters { margin-bottom:28px }
+.letters legend { margin-bottom:12px }
+.letters button { background:transparent; min-height:36px }
+.letters button[aria-pressed=true] { background:var(--accent); color:var(--background) }
+.table-scroll { overflow:visible }
+table { table-layout:fixed; white-space:normal; font-size:.78rem }
+th,td { padding:14px 8px; overflow-wrap:anywhere }
+th { font-size:.68rem; line-height:1.6 }
+th:first-child,td:first-child { width:14%; padding-left:0 }
+th:nth-child(2),td:nth-child(2) { width:40% }
+th:last-child,td:last-child { text-align:right; padding-right:0 }
+td button { background:transparent; padding:6px 0; text-align:left; font:400 1.2rem Georgia,"Songti SC",serif; max-width:100%; overflow-wrap:anywhere }
+td button[aria-pressed=true] { color:var(--accent) }
+.pagination { flex-wrap:wrap; gap:8px; margin-top:28px; color:var(--muted) }
+.pagination button { background:transparent; min-height:40px }
+.shortlist li { gap:8px }
+.shortlist li > div { display:flex; flex-shrink:0 }
+main > .shortlist { position:static; max-width:700px; margin-top:40px }
+.check-panel { max-width:700px; margin-bottom:0 }
+.handle-steps { padding-left:24px; margin-bottom:32px; font-size:.88rem; line-height:1.9 }
+.handle-steps li { padding-left:8px }
+.handle-steps li::marker { font:italic 1rem Georgia,serif; color:var(--accent) }
+.handle-shortlist { border-top:1px solid var(--line); padding-top:18px; margin-bottom:28px }
+.handle-shortlist legend { padding-right:12px }
+.handle-shortlist button { background:transparent; font:400 1.1rem Georgia,"Songti SC",serif; overflow-wrap:anywhere; max-width:100% }
+#handle-form { border-top:1px solid var(--line); padding-top:24px; gap:24px }
+#handle-form input { background:transparent; font-size:1rem; min-width:0 }
+#profile-links:not(:empty) { margin-top:32px; border-top:1px solid var(--line) }
+#profile-links > p { font-size:.8rem; line-height:1.8; text-wrap:pretty }
+.profile-link { align-items:center; font-weight:500; font-size:.95rem; line-height:1.6; overflow-wrap:anywhere }
+.profile-link span { font-size:.72rem; text-align:right }
+.status,main > [role=status],main > [role=alert],.results > [role=alert],.swipe-stage > [role=alert] {
+  border-top:1px solid var(--line); padding:32px 0; margin:0 0 16px;
+  font-size:.85rem; line-height:1.9; color:var(--muted); text-wrap:pretty; overflow-wrap:anywhere;
+}
+#deck-end { border-width:1px 0; border-radius:0; background:transparent; padding:32px 12px; min-height:clamp(280px,calc(100svh - 530px),460px) }
+#deck-end h2 { font-size:clamp(2rem,3.5vw,3rem); line-height:1.15; letter-spacing:-.045em; margin-bottom:12px }
+#deck-end .eyebrow { margin-bottom:8px }
+#deck-end p { font-size:.82rem; line-height:1.8 }
+header button,main:not(:has(.choose-page)) button,main:not(:has(.choose-page)) input,main:not(:has(.choose-page)) select,.primary { border-radius:4px }
+header button,main button,main .primary { transition:transform 180ms ease,opacity 180ms ease }
+.primary { font-size:.8rem; background:var(--accent); color:var(--background) }
+.primary:hover:not(:disabled) { background:var(--accent); color:var(--background); opacity:.9 }
+header button:active:not(:disabled),main button:active:not(:disabled),main .primary:active { transform:scale(.97) }
+a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible,.segmented input:focus-visible+span { outline:2px solid var(--accent); outline-offset:4px }
+@media(max-width:900px) {
+  .workspace:not(.swipe-workspace) { grid-template-columns:minmax(0,1fr); gap:32px }
+}
+@media(max-width:600px) {
+  nav { padding-right:16px; padding-left:16px; gap:4px 14px }
+  nav a { font-size:.7rem }
+  .brand { gap:8px; font-size:.85rem }
+  .brand-icon { width:34px; height:34px; font-size:1.4rem }
+  .locale { padding:8px; font-size:.7rem }
+  .page-title { align-items:flex-start }
+  .page-title h1,.check-panel h1 { font-size:2.5rem }
+  .page-title > button { flex-shrink:0; font-size:.72rem }
+  .query { gap:20px; align-items:flex-start }
+  .query > label { flex:1; min-width:0 }
+  .query .segmented span { padding:11px 12px }
+  .query > .primary { min-height:46px }
+  .workspace:not(.swipe-workspace) { margin-top:24px }
+  th,td { padding:12px 4px; font-size:.72rem }
+  th { font-size:.62rem }
+  td button { font-size:1.05rem }
+  .shortlist p { max-width:100% }
+  .handle-steps { font-size:.82rem; padding-left:20px }
+  #handle-form { gap:16px }
+  #handle-form label { min-width:0 }
+  #deck-end { min-height:clamp(210px,calc(100svh - 505px),340px) }
+  footer { padding:24px 16px 28px }
+}
+@media(prefers-reduced-motion:reduce) {
+  header button,main button,main .primary { transition:none }
+}
+/* pages r2: readability floor on mobile, tidy shortlist count */
+.shortlist .badge { border:1px solid var(--line); border-radius:999px; min-width:24px; padding:1px 8px; font:500 .72rem/1.6 Inter,ui-sans-serif,system-ui,sans-serif; text-align:center; background:transparent; color:var(--muted) }
+@media (max-width:760px){
+  nav a { font-size:.8rem }
+  .locale { font-size:.78rem }
+  .handle-steps { font-size:.9rem; line-height:1.8 }
+  .guidance,.shortlist p,#deck-end p { font-size:.88rem }
+  .query > label,.query legend,#handle-form label,.letters legend { font-size:.76rem }
+  table { font-size:.84rem }
+}
