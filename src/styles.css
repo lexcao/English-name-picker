@@ -1,4 +1,782 @@
-/* You can add global styles to this file, and also import other style files */
+:root {
+  font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --text:#243c32;
+  --background:#f6f7f2;
+  font-synthesis:none;
+  --panel:#fff;
+  --muted:#65746b;
+  --line:#dfe5dc;
+  --accent:#31674f;
+  --soft:#eaf0e5;
+  color-scheme:light dark
+}
+* {
+  box-sizing:border-box
+}
+html,body {
+  background:var(--background);
+  color:var(--text);
+  min-height:100%
+}
+body {
+  margin:0
+}
+button,input,select {
+  font:inherit
+}
+button,a,input,select {
+  touch-action:manipulation
+}
+a {
+  color:inherit
+}
+button {
+  cursor:pointer
+}
+button:disabled {
+  cursor:default;
+  opacity:.45
+}
+button,input,select {
+  border:1px solid var(--line);
+  border-radius:10px;
+  background:var(--panel);
+  color:inherit
+}
+button {
+  padding:.65rem .9rem
+}
+button:hover:not(:disabled) {
+  border-color:var(--accent);
+  background:var(--soft)
+}
+a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible {
+  outline:3px solid #90ae4c;
+  outline-offset:3px
+}
+header,nav,main,footer {
+  max-width:1180px;
+  margin:auto
+}
+header {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:28px 24px
+}
+.brand {
+  display:flex;
+  align-items:center;
+  gap:12px;
+  text-decoration:none;
+  font-weight:750;
+  font-size:1.05rem
+}
+.brand-icon {
+  display:grid;
+  place-items:center;
+  background:var(--accent);
+  color:#fff;
+  width:39px;
+  height:39px;
+  border-radius:12px;
+  font-size:1.6rem;
+  font-family:Georgia,serif
+}
+.locale {
+  background:transparent
+}
+nav {
+  display:flex;
+  gap:6px;
+  padding:0 24px 20px;
+  border-bottom:1px solid var(--line);
+  overflow:auto
+}
+nav a {
+  white-space:nowrap;
+  text-decoration:none;
+  font-size:.9rem;
+  padding:9px 14px;
+  border-radius:8px;
+  color:var(--muted)
+}
+nav a[aria-current] {
+  background:var(--soft);
+  color:var(--accent);
+  font-weight:650
+}
+main {
+  padding:36px 24px 60px;
+  min-height:65vh
+}
+h1,h2,h3,p {
+  margin-top:0
+}
+h1 {
+  font-size:clamp(2rem,5vw,3rem);
+  letter-spacing:-.045em;
+  line-height:1.15;
+  margin-bottom:20px
+}
+h2 {
+  font-size:1.15rem;
+  letter-spacing:-.02em
+}
+h3 {
+  font-size:1.05rem
+}
+.eyebrow {
+  font-size:.73rem;
+  letter-spacing:.18em;
+  color:var(--accent);
+  font-weight:750;
+  margin-bottom:20px
+}
+.hero {
+  position:relative;
+  padding:50px 0 70px;
+  overflow:hidden
+}
+.hero h1 {
+  font-family:Georgia,"Songti SC",serif;
+  font-size:clamp(3rem,6.4vw,5rem);
+  font-weight:500;
+  max-width:650px
+}
+.intro {
+  color:var(--muted);
+  line-height:1.8;
+  font-size:1.05rem;
+  max-width:500px;
+  margin-bottom:30px
+}
+.primary {
+  display:inline-flex;
+  gap:24px;
+  align-items:center;
+  justify-content:center;
+  padding:14px 22px;
+  border-radius:10px;
+  background:var(--accent);
+  color:#fff;
+  text-decoration:none;
+  border:0;
+  font-weight:600
+}
+.primary:hover:not(:disabled) {
+  background:#24543e;
+  color:white
+}
+.word-art {
+  position:absolute;
+  right:0;
+  top:25px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:16px;
+  transform:rotate(-9deg);
+  width:36%;
+  pointer-events:none
+}
+.word-art span {
+  font:italic 2.7rem Georgia,serif;
+  padding:9px 28px;
+  border:1px solid var(--line);
+  border-radius:50px;
+  background:var(--panel);
+  color:var(--muted)
+}
+.word-art span:nth-child(2n) {
+  transform:translateX(20px);
+  background:var(--soft)
+}
+.word-art span:last-child {
+  color:var(--accent);
+  font-size:3.3rem
+}
+.method {
+  border-top:1px solid var(--line);
+  padding-top:32px
+}
+.steps {
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:40px;
+  margin-top:30px
+}
+.steps p {
+  color:var(--muted);
+  font-size:.95rem;
+  line-height:1.7
+}
+.step-number {
+  display:block;
+  font:italic 2rem Georgia,serif;
+  color:var(--accent);
+  margin-bottom:20px
+}
+.panel {
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:18px;
+  padding:24px
+}
+.page-title,.section-heading {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px
+}
+.page-title h1 {
+  margin-bottom:10px
+}
+.page-title button {
+  align-self:center
+}
+.muted {
+  color:var(--muted);
+  line-height:1.7
+}
+.guidance {
+  max-width:800px;
+  font-size:.9rem
+}
+.query {
+  display:flex;
+  align-items:center;
+  gap:32px;
+  flex-wrap:wrap
+}
+label {
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  font-size:.85rem;
+  font-weight:550
+}
+input:not([type=radio]):not([type=checkbox]),select {
+  padding:11px 12px;
+  min-height:44px;
+  width:100%
+}
+input[type=number] {
+  max-width:180px
+}
+small {
+  font-size:.7rem;
+  color:var(--muted)
+}
+fieldset {
+  border:0;
+  margin:0;
+  padding:0;
+  min-width:0
+}
+legend {
+  font-size:.85rem;
+  font-weight:550;
+  margin-bottom:8px;
+  padding:0
+}
+.segmented {
+  display:flex;
+  gap:6px
+}
+.segmented label {
+  position:relative
+}
+.segmented input {
+  position:absolute;
+  opacity:0
+}
+.segmented span {
+  padding:11px 24px;
+  border:1px solid var(--line);
+  border-radius:9px;
+  cursor:pointer
+}
+.segmented input:checked+span {
+  background:var(--soft);
+  border-color:var(--accent);
+  color:var(--accent)
+}
+.segmented input:focus-visible+span {
+  outline:3px solid #90ae4c
+}
+.query>.primary {
+  margin-left:auto
+}
+.workspace {
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 280px;
+  gap:24px;
+  margin-top:24px;
+  align-items:start
+}
+.section-heading {
+  margin-bottom:16px
+}
+.section-heading h2 {
+  margin:0
+}
+.section-heading button {
+  font-size:.8rem
+}
+.speech {
+  border-bottom:1px solid var(--line);
+  padding:0 0 18px;
+  margin-bottom:20px;
+  font-size:.85rem;
+  color:var(--muted)
+}
+summary {
+  cursor:pointer
+}
+.speech-fields {
+  display:flex;
+  flex-wrap:wrap;
+  gap:16px;
+  padding-top:18px
+}
+.speech-fields label {
+  flex:1;
+  min-width:130px
+}
+.speech-fields .toggle {
+  flex-basis:100%;
+  flex-direction:row;
+  align-items:center
+}
+.toggle input {
+  accent-color:var(--accent);
+  width:18px;
+  height:18px
+}
+.letters {
+  margin-bottom:24px
+}
+.letters>div {
+  display:flex;
+  flex-wrap:wrap;
+  gap:5px
+}
+.letters button {
+  padding:7px;
+  min-width:32px;
+  font-size:.8rem;
+  border-color:transparent
+}
+.letters button[aria-pressed=true] {
+  background:var(--accent);
+  color:white
+}
+.name-grid {
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:10px
+}
+.name-card {
+  display:flex;
+  align-items:center;
+  gap:8px;
+  min-height:62px;
+  padding:10px;
+  text-align:left;
+  min-width:0
+}
+.name-card strong {
+  font-size:.95rem;
+  overflow-wrap:anywhere
+}
+.name-rank {
+  font-size:.65rem;
+  color:var(--muted)
+}
+.name-mark {
+  margin-left:auto;
+  color:var(--accent)
+}
+.is-selected {
+  background:var(--soft);
+  border-color:var(--accent)
+}
+.load-more {
+  display:block;
+  margin:24px auto 0;
+  font-size:.8rem
+}
+.badge {
+  background:var(--soft);
+  color:var(--accent);
+  padding:5px 10px;
+  border-radius:20px;
+  font-size:.8rem
+}
+.shortlist {
+  position:sticky;
+  top:16px
+}
+.shortlist ul {
+  list-style:none;
+  margin:0;
+  padding:0
+}
+.shortlist li {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  border-bottom:1px solid var(--line);
+  padding:8px 0
+}
+.name-speak {
+  border:0;
+  padding:8px 0;
+  font-weight:650
+}
+.name-speak span {
+  color:var(--accent);
+  margin-left:6px
+}
+.icon-button {
+  padding:6px 9px;
+  border:0;
+  font-size:1.2rem
+}
+.shortlist p {
+  font-size:.9rem;
+  margin-bottom:0
+}
+.status {
+  padding:32px 0;
+  color:var(--muted)
+}
+.table-scroll {
+  overflow:auto
+}
+table {
+  border-collapse:collapse;
+  width:100%;
+  font-size:.85rem;
+  text-align:left;
+  white-space:nowrap
+}
+th {
+  color:var(--muted);
+  font-weight:500
+}
+th,td {
+  padding:12px 8px;
+  border-bottom:1px solid var(--line)
+}
+td button {
+  border:0;
+  font-weight:600
+}
+.pagination {
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  gap:8px;
+  margin-top:20px;
+  font-size:.75rem
+}
+.pagination button {
+  font-size:.75rem;
+  padding:8px
+}
+.check-panel {
+  max-width:700px;
+  margin-bottom:24px
+}
+.check-panel h1 {
+  font-size:2rem
+}
+#handle-form {
+  display:flex;
+  align-items:end;
+  gap:16px;
+  margin-top:24px
+}
+#handle-form label {
+  flex:1
+}
+.profile-link {
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  padding:16px 0;
+  text-decoration:none;
+  border-bottom:1px solid var(--line);
+  font-weight:650
+}
+.profile-link span {
+  color:var(--muted);
+  font-size:.85rem
+}
+footer {
+  border-top:1px solid var(--line);
+  padding:26px 24px 32px;
+  font-size:.8rem;
+  color:var(--muted)
+}
+footer a {
+  text-underline-offset:4px
+}
+footer p {
+  font-size:.7rem;
+  margin:10px 0 0
+}
+@media(min-width:900px) {
+  .hero h1 {
+    max-width:62%
+  }
+}
+@media(max-width:900px) {
+  .word-art {
+    display:none
+  }
+  .workspace {
+    grid-template-columns:minmax(0,1fr)
+  }
+  .shortlist {
+    position:static
+  }
+  .name-grid {
+    grid-template-columns:repeat(4,minmax(0,1fr))
+  }
+  .query>.primary {
+    margin-left:0
+  }
+}
+@media(max-width:600px) {
+  header {
+    padding:20px 16px
+  }
+  nav {
+    padding:0 12px 16px;
+    gap:0
+  }
+  nav a {
+    padding:9px 10px;
+    font-size:.8rem
+  }
+  main {
+    padding:26px 16px 40px
+  }
+  .hero {
+    padding:20px 0 40px
+  }
+  .steps {
+    grid-template-columns:1fr;
+    gap:20px
+  }
+  .steps article {
+    padding-left:48px;
+    position:relative
+  }
+  .step-number {
+    position:absolute;
+    left:0;
+    top:0;
+    font-size:1.6rem
+  }
+  .steps h3 {
+    margin-bottom:8px
+  }
+  .panel {
+    padding:18px;
+    border-radius:14px
+  }
+  .query {
+    gap:20px
+  }
+  .query>.primary {
+    width:100%
+  }
+  .name-grid {
+    grid-template-columns:repeat(2,minmax(0,1fr))
+  }
+  .name-card {
+    min-height:60px
+  }
+  .section-heading {
+    flex-wrap:wrap
+  }
+  #handle-form {
+    flex-direction:column;
+    align-items:stretch
+  }
+  .pagination {
+    gap:5px
+  }
+  .brand {
+    font-size:.95rem
+  }
+}
+@media(prefers-color-scheme:dark) {
+  :root {
+    --text:#e1e9de;
+    --background:#151e19;
+    --panel:#1e2a22;
+    --muted:#a5b5a8;
+    --line:#36473b;
+    --accent:#a6c993;
+    --soft:#304432
+  }
+  .primary,.brand-icon {
+    background:#a6c993;
+    color:#17251a
+  }
+  .letters button[aria-pressed=true] {
+    color:#17251a
+  }
+  .word-art span {
+    color:var(--muted)
+  }
+}
 
-html, body { height: 100%; }
-body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
+.handle-steps li + li {
+  margin-top:12px
+}
+.handle-shortlist > div {
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px
+}
+
+/* The choose route owns its deck and controls; other routes retain their layout. */
+.choose-page { min-width:0; overflow:clip; padding:4px 0 12px }
+.choose-page .page-title h1 { font-size:1.65rem; line-height:1.2; margin:0 0 4px; letter-spacing:-.025em }
+main:has(.choose-page) { padding-top:14px }
+@media(min-width:901px) {
+  body:has(.choose-page) header { padding-top:16px; padding-bottom:16px }
+  body:has(.choose-page) nav { padding-bottom:12px }
+}
+.choose-page .guidance { font-size:.8rem; line-height:1.4; margin-bottom:12px }
+.choose-filter-panel { padding:8px 12px; border-radius:12px }
+#choose-filters-toggle { display:none }
+.choose-page .eyebrow { margin-bottom:12px }
+.choose-controls { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); align-items:center; gap:24px }
+.choose-controls > label { flex:1; min-width:0; flex-direction:row; align-items:center; gap:8px; white-space:nowrap; font-size:.75rem }
+.choose-controls fieldset { display:flex; align-items:center; gap:8px; min-width:0; margin:0; padding:0; border:0 }
+.choose-controls fieldset .segmented { flex:1; display:flex }
+.choose-controls fieldset .segmented label { flex:1 }
+.choose-controls fieldset .segmented span { text-align:center }
+.choose-controls legend { float:left; margin:0 8px 0 0; font-size:.75rem; line-height:36px }
+.choose-controls input[type=number],.choose-controls select { min-height:36px; padding:6px 8px; width:100%; min-width:0 }
+.choose-controls .segmented { gap:4px }
+.choose-controls .segmented span { display:block; padding:8px 12px; font-size:.75rem }
+.swipe-workspace { grid-template-columns:minmax(0,1fr) 300px; gap:32px; margin-top:12px }
+.swipe-stage { min-width:0; text-align:center; padding:0 16px }
+.deck-meta { display:flex; align-items:center; justify-content:space-between; gap:8px; color:var(--muted); font-size:.7rem; line-height:16px; margin:0 auto 6px; max-width:600px }
+.swipe-stack { position:relative; height:clamp(380px,calc(100svh - 420px),460px); max-width:600px; padding-bottom:24px; margin:0 auto 12px; isolation:isolate; box-sizing:content-box }
+.swipe-card { position:absolute; inset:0 0 24px; display:flex; align-items:center; flex-direction:column; justify-content:center; background:var(--panel); border:1px solid var(--line); border-radius:28px; padding:32px; box-shadow:0 15px 28px -20px var(--text); transform-origin:50% 75%; user-select:none; -webkit-user-select:none }
+.swipe-card.is-top { touch-action:none; cursor:grab; will-change:transform; }
+.swipe-card.is-top:active { cursor:grabbing }
+.swipe-card.is-behind { transform:translateY(calc(var(--depth) * 10px)) scale(calc(1 - var(--depth) * .045)); background:var(--soft); pointer-events:none }
+.swipe-card.is-behind:nth-child(3) { background:var(--accent) }
+.card-topline { position:absolute; inset:26px 28px auto; display:flex; justify-content:space-between; gap:12px; font-size:.8rem; color:var(--muted) }
+.swipe-card h2 { font:500 clamp(2.8rem,6vw,5.5rem)/1.15 Georgia,"Songti SC",serif; letter-spacing:-.055em; max-width:100%; overflow-wrap:anywhere; margin:24px 0 12px }
+.card-occurrences { font-size:.85rem; color:var(--muted); margin-bottom:16px }
+.card-pronounce { border:0; background:transparent; color:var(--accent); font-size:1.3rem }
+.card-pronounce span { font-size:.8rem; vertical-align:middle; margin-left:5px }
+.card-rule { position:absolute; bottom:20px; color:var(--muted); font:italic 1.1rem Georgia,serif }
+.stamp-keep,.stamp-skip { position:absolute; top:70px; border:3px solid var(--accent); color:var(--accent); font-weight:750; text-transform:uppercase; letter-spacing:.08em; border-radius:8px; padding:8px 14px; opacity:0; pointer-events:none; z-index:2; background:var(--panel) }
+.stamp-keep { right:24px; transform:rotate(12deg) }
+.stamp-skip { left:24px; transform:rotate(-12deg); color:var(--muted); border-color:var(--muted) }
+.swipe-actions { display:flex; justify-content:center; align-items:center; gap:12px }
+.swipe-actions button { border-radius:24px; padding:11px 18px; min-height:44px; white-space:nowrap; font-size:.8rem }
+.swipe-actions #skip { background:var(--soft) }
+.swipe-actions .swipe-undo { border:1px solid var(--line); background:transparent; color:var(--muted) }
+.swipe-keys { font-size:.7rem; margin:8px 0 0 }
+.choose-page .speech { text-align:left; margin:16px 0 0; padding:12px 0; font-size:.75rem }
+#choose-shortlist { min-width:0; scroll-margin-top:24px }
+#choose-shortlist .shortlist { position:static; background:transparent; border-width:0 0 0 1px; border-radius:0; padding:0 0 20px 24px; margin-top:22px }
+/* Give the flex item a shrinkable text box and inset glyphs from the button clip edge. */
+#choose-shortlist .name-speak { flex:1; min-width:0; padding:8px 6px; background:transparent; overflow-wrap:anywhere; text-align:left; appearance:none; overflow:visible }
+#choose-shortlist li { gap:8px }
+#choose-shortlist li > div { display:flex; flex-shrink:0 }
+#deck-end { min-height:420px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; margin-bottom:12px }
+#deck-end h2 { font:500 2rem Georgia,"Songti SC",serif }
+#deck-end p { margin-bottom:0 }
+@media(max-width:900px) {
+  .swipe-workspace { grid-template-columns:minmax(0,1fr); gap:16px }
+  #choose-shortlist .shortlist { border:1px solid var(--line); border-radius:18px; padding:20px; background:var(--panel); margin-top:0 }
+  #choose-filters-toggle { display:flex; align-items:center; gap:10px; width:100%; border:0; padding:4px 0; background:transparent; text-align:left; font-size:.8rem; min-height:36px }
+  #choose-filters-toggle span:nth-child(2) { flex:1; font-size:.7rem; color:var(--muted); line-height:1.5 }
+  .choose-controls { display:none }
+  .choose-controls.is-open { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; padding-top:12px }
+  .choose-controls > label { flex-direction:column; align-items:stretch; gap:5px }
+  .choose-controls fieldset { display:block }
+  .choose-controls legend { float:none; line-height:normal; margin-bottom:5px }
+}
+@media(max-width:600px) {
+  .choose-page .page-title h1 { font-size:1.4rem }
+  .choose-page .guidance { font-size:.75rem }
+  .choose-controls .segmented label { flex:1 }
+  .choose-controls .segmented span { text-align:center; padding:8px }
+  .swipe-stage { padding:0 4px }
+  .swipe-stack { height:clamp(290px,calc(100svh - 470px),340px) }
+  .swipe-card { padding:18px 16px; border-radius:22px }
+  .swipe-card h2 { font-size:clamp(2.4rem,12vw,4rem); letter-spacing:-.035em }
+  .card-topline { inset:24px 18px auto; font-size:.7rem }
+  .swipe-actions { gap:6px }
+  .swipe-actions button { padding:10px 12px; font-size:.75rem }
+  .swipe-keys { display:none }
+  .stamp-keep,.stamp-skip { top:65px; font-size:.85rem; padding:7px 10px }
+  #deck-end { min-height:300px }
+}
+@media(prefers-reduced-motion:reduce) {
+  .choose-page *, .choose-page *::before, .choose-page *::after { transition:none !important; animation:none !important; scroll-behavior:auto !important }
+  .stamp-keep,.stamp-skip { transform:none }
+}
+
+/* Overview: tilted, drifting rows of name cards. */
+.overview-open { margin-left:12px; border:1px solid var(--line); background:var(--panel); color:var(--text); border-radius:999px; padding:4px 12px; min-height:28px; font-size:.72rem }
+.deck-meta > span:nth-child(2) { margin-left:auto }
+body.overview-lock { overflow:hidden }
+#overview { position:fixed; inset:0; z-index:50; background:var(--background); color:var(--text); opacity:0; transition:opacity .3s ease; overflow:hidden }
+#overview.is-open { opacity:1 }
+.overview-bar { position:absolute; z-index:2; inset:0 0 auto; display:flex; align-items:center; justify-content:space-between; gap:16px; padding:18px clamp(16px,4vw,48px); background:color-mix(in srgb,var(--background) 88%,transparent); -webkit-backdrop-filter:blur(14px); backdrop-filter:blur(14px); border-bottom:1px solid var(--line); box-shadow:0 12px 24px -8px var(--background) }
+.overview-bar h2 { font:500 1.5rem/1.2 Georgia,"Songti SC",serif; margin:0 }
+.overview-bar p { margin:4px 0 0; font-size:.75rem; color:var(--muted) }
+#overview-close { flex-shrink:0; border-radius:999px; padding:10px 18px; min-height:42px; background:var(--accent); color:var(--panel); border:0; font-size:.8rem }
+.overview-stage { position:absolute; inset:0; perspective:1400px; display:flex; align-items:center; justify-content:center;
+  -webkit-mask-image:radial-gradient(ellipse 75% 70% at 50% 52%,#000 55%,transparent 100%); mask-image:radial-gradient(ellipse 75% 70% at 50% 52%,#000 55%,transparent 100%) }
+.overview-plane { --cw:236px; --gap:18px; display:flex; flex-direction:column; gap:var(--gap); flex-shrink:0; width:calc(var(--per) * (var(--cw) + var(--gap))); transform:rotateX(18deg) rotateZ(-22deg) scale(1.45); transform-style:preserve-3d }
+.overview-row { display:flex; justify-content:flex-start; width:100% }
+.overview-track { display:flex; width:max-content; animation:overview-drift var(--dur,50s) linear infinite; will-change:transform }
+.overview-row.is-alt .overview-track { animation-direction:reverse }
+.overview-row:hover .overview-track { animation-play-state:paused }
+.overview-set { display:flex; gap:var(--gap); padding-right:var(--gap) }
+.overview-card { display:flex; flex-direction:column; align-items:flex-start; gap:6px; flex-shrink:0; box-sizing:border-box; width:var(--cw); overflow:hidden; padding:20px 24px; border-radius:20px; border:1px solid var(--line); background:var(--panel); color:var(--text); text-align:left; white-space:nowrap; box-shadow:0 14px 26px -22px var(--text); cursor:pointer; transition:transform .2s ease, border-color .2s ease }
+.overview-row.is-alt .overview-card { background:var(--soft) }
+.overview-card:hover,.overview-card:focus-visible { transform:translateY(-4px); border-color:var(--accent) }
+.overview-card strong { font:500 2rem/1.1 Georgia,"Songti SC",serif; letter-spacing:-.03em }
+.overview-card small { font-size:.72rem; color:var(--muted) }
+.overview-star { color:var(--accent); font-size:.9rem; margin-left:6px; vertical-align:super }
+@keyframes overview-drift { from { transform:translate3d(0,0,0) } to { transform:translate3d(-50%,0,0) } }
+@media(prefers-color-scheme:dark) {
+  .overview-card { background:#1f2a2e; border-color:#33424a }
+  .overview-row.is-alt .overview-card { background:#1f3a2b; border-color:#2f5240 }
+  #overview-close { color:#10180f }
+}
+@media(max-width:600px) {
+  .overview-plane { --cw:196px; --gap:16px; transform:rotateX(18deg) rotateZ(-22deg) scale(1.25) }
+  .overview-card { padding:18px 20px }
+  .overview-card strong { font-size:1.8rem }
+  .overview-bar h2 { font-size:1.15rem }
+  .overview-bar p { display:none }
+}
+@media(prefers-reduced-motion:reduce) {
+  .overview-track { animation:none }
+  #overview,.overview-card { transition:none }
+}
+@media(prefers-color-scheme:dark) {
+  .swipe-card,.overview-card { box-shadow:0 18px 30px -22px #000 }
+  .swipe-card.is-behind:nth-child(3) { background:var(--soft); opacity:.7 }
+}
+.overview-card.is-long strong { font-size:1.55rem }
+.overview-card strong,.overview-card small { max-width:100%; overflow:hidden; text-overflow:ellipsis }
