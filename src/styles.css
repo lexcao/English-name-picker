@@ -680,7 +680,7 @@ main:has(.choose-page) { padding-top:14px }
 .deck-meta { display:flex; align-items:center; justify-content:space-between; gap:8px; color:var(--muted); font-size:.7rem; line-height:16px; margin:0 auto 6px; max-width:600px }
 .swipe-stack { position:relative; height:clamp(380px,calc(100svh - 420px),460px); max-width:600px; padding-bottom:24px; margin:0 auto 12px; isolation:isolate; box-sizing:content-box }
 .swipe-card { position:absolute; inset:0 0 24px; display:flex; align-items:center; flex-direction:column; justify-content:center; background:var(--panel); border:1px solid var(--line); border-radius:28px; padding:32px; box-shadow:0 15px 28px -20px var(--text); transform-origin:50% 75%; user-select:none; -webkit-user-select:none }
-.swipe-card.is-top { touch-action:none; cursor:grab; will-change:transform; }
+.swipe-card.is-top { touch-action:none; cursor:grab; }
 .swipe-card.is-top:active { cursor:grabbing }
 /* Every card has the same surface; depth is a tint overlay, so promotion never changes colour. */
 .swipe-card.is-behind { transform:translateY(calc(var(--depth) * 10px)) scale(calc(1 - var(--depth) * .045)); pointer-events:none }
@@ -792,7 +792,7 @@ body.overview-lock { overflow:hidden }
 .overview-plane { position:relative; display:block; transform-style:flat }
 .overview-row { position:absolute; top:50%; left:0; will-change:transform }
 .overview-track { animation:none; will-change:transform }
-.overview-card { transition:transform .2s ease }
+.overview-card { transition:transform .2s ease, border-color .2s ease }
 
 #overview { background:transparent }
 .overview-background { position:absolute; inset:0; background:var(--background); pointer-events:none }
@@ -804,7 +804,8 @@ body.overview-lock { overflow:hidden }
 .overview-drag-hint { position:absolute; z-index:3; bottom:32px; left:50%; transform:translateX(-50%); display:flex; align-items:center; gap:10px; padding:12px 20px; border-radius:999px; background:var(--text); color:var(--background); pointer-events:none; opacity:0; transition:opacity 200ms ease }
 .overview-drag-hint.is-visible { opacity:1 }
 .overview-morph { position:absolute; z-index:10; pointer-events:none; transform-origin:center; will-change:transform,opacity }
-#overview:not(.is-settled) .overview-card { pointer-events:none }
+/* pointer-events is inherited: toggling it restyles every card. A non-inherited shield inside the plane blocks clicks instead. */
+#overview:not(.is-settled) .overview-plane::after { content:''; position:absolute; inset:-100vmax; z-index:20 }
 .overview-morph { overflow:hidden }
 .overview-morph-face { box-shadow:none!important; will-change:opacity,transform }
 .overview-morph-tile { background:transparent!important; box-shadow:none!important; border-color:transparent!important; will-change:opacity,transform }
@@ -821,7 +822,7 @@ body.overview-lock { overflow:hidden }
 .overview-row { opacity:0; translate:0 28px; transition:opacity .22s ease calc((1 - var(--d,0)) * .08s), translate .22s ease calc((1 - var(--d,0)) * .08s) }
 #overview.is-revealed .overview-row { opacity:1; translate:0 0; transition:opacity .4s cubic-bezier(.2,.8,.2,1) calc(var(--d,0) * .28s + .06s), translate .75s var(--spring) calc(var(--d,0) * .28s + .06s) }
 @media (prefers-reduced-motion:reduce){ .overview-row, #overview.is-revealed .overview-row { translate:none; transition:opacity .2s linear } }
-.overview-row.is-focal-row, #overview.is-revealed .overview-row.is-focal-row { translate:none }
+#overview .overview-row.is-focal-row, #overview.is-revealed .overview-row.is-focal-row { translate:none; transition-property:opacity }
 
 /* Shared editorial palette and typography. Deck and camera motion remain
    owned by the rules above. */
@@ -1139,3 +1140,12 @@ html[lang^="zh"] .choose-page .page-title h1 {
 @media (max-width:600px) {
   .choose-page .swipe-card h2 { font-size:clamp(2rem,11vw,4rem) }
 }
+
+/* Row-only variables: not inherited, so row reveal restyles never cascade into ~900 cards. */
+@property --d { syntax:"<number>"; inherits:false; initial-value:0 }
+
+/* Prebuilt wall: off-screen while it is built, then parked (layout kept, nothing painted or focusable). */
+#overview.is-pre { translate:-300vw 0 }
+#overview.is-parked { content-visibility:hidden }
+
+body.overview-flying .choose-page { overflow:visible }

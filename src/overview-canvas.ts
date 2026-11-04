@@ -1,7 +1,8 @@
 import { decayStep, estimateVelocity, isDrag, rowDuration, screenToPlaneDelta, wrap, type MotionSample } from './overview';
 
 /** Owns one canvas session. All layout reads happen at setup/resize, never per frame. */
-export function startOverviewCanvas(el: HTMLElement, reduced: boolean, onDrag: () => void = () => {}) {
+/** `paused` sets up geometry and listeners without starting the frame loop (for a prebuilt, parked wall). */
+export function startOverviewCanvas(el: HTMLElement, reduced: boolean, onDrag: () => void = () => {}, paused = false) {
     const stage = el.querySelector<HTMLElement>('.overview-stage')!;
     const plane = el.querySelector<HTMLElement>('.overview-plane')!;
     const rows = [...plane.querySelectorAll<HTMLElement>('.overview-row')];
@@ -9,7 +10,7 @@ export function startOverviewCanvas(el: HTMLElement, reduced: boolean, onDrag: (
     let active = false, hintStart = 0;
     let samples: MotionSample[] = [];
     let width = 0, pitch = 0, height = 0, scale = 1;
-    let x = 0, y = 0, vx = 0, vy = 0, last = performance.now(), resume = last;
+    let x = 0, y = 0, vx = 0, vy = 0, last = performance.now(), resume = last, speed = 0;
     const drift = rows.map(() => 0);
     let pointer: number | null = null, dragged = false, startX = 0, startY = 0, px = 0, py = 0;
     const measure = () => {
@@ -38,17 +39,21 @@ export function startOverviewCanvas(el: HTMLElement, reduced: boolean, onDrag: (
     let frame = 0;
     const tick = (now: number) => {
         const dt = Math.min((now - last) / 1000, .05); last = now;
-        if (active && pointer === null && !reduced) {
+        if (pointer === null && !reduced && (vx || vy || active)) {
             const sx = decayStep(vx, dt * 1000), sy = decayStep(vy, dt * 1000);
             x += sx.distance; y += sy.distance; vx = sx.velocity; vy = sy.velocity;
-            const ease = Math.min(1, (now - resume) / 1200);
-            drift.forEach((_, i) => drift[i] += (i % 2 ? 1 : -1) * width / rowDuration(i) * dt * ease);
+            // Closing: inertia keeps gliding but bleeds out faster (continuous, monotonic), never zeroed on the click.
+            if (!active) { const f = Math.exp(-dt / .18); vx *= f; vy *= f; if (Math.hypot(vx, vy) < .5) vx = vy = 0; }
         }
+        // Drift speed eases in on open (~1.2s) and out on close (~0.6s): the marquee never starts or stops on a step.
+        const want = active && pointer === null && !reduced ? 1 : 0;
+        speed = want ? Math.min(1, speed + dt / 1.2) : Math.max(0, speed - dt / .6);
+        if (speed) drift.forEach((_, i) => drift[i] += (i % 2 ? 1 : -1) * width / rowDuration(i) * dt * speed * speed * (3 - 2 * speed));
         x = wrap(x, width); y = wrap(y, height);
         const h = hintStart ? Math.min(1, (now - hintStart) / 900) : 0;
         draw(active && !reduced ? 40 * (1 - Math.cos(2 * Math.PI * h)) : 0); frame = requestAnimationFrame(tick);
     };
-    frame = requestAnimationFrame(tick);
+    if (!paused) frame = requestAnimationFrame(tick);
     stage.onpointerdown = e => {
         if (!active || pointer !== null || (e.pointerType === 'mouse' && e.button !== 0)) return;
         pointer = e.pointerId; dragged = false; startX = px = e.clientX; startY = py = e.clientY; samples = [{ x: 0, y: 0, time: e.timeStamp }];
@@ -94,7 +99,8 @@ export function startOverviewCanvas(el: HTMLElement, reduced: boolean, onDrag: (
     };
     stage.addEventListener('wheel', wheel, { passive: false });
     return {
-        setActive(value: boolean) { if (!value) { stopNudge(); draw(); } active = value; resume = performance.now(); vx = vy = 0; },
+        setActive(value: boolean) { if (!value) { stopNudge(); draw(); } else vx = vy = 0; active = value; resume = performance.now(); },
+        resume() { if (!frame) { last = performance.now(); frame = requestAnimationFrame(tick); } },
         nudge() { hintStart = performance.now(); },
         panBy(dx: number, dy: number) { x = wrap(x + dx, width); y = wrap(y + dy, height); draw(); },
         stop() {

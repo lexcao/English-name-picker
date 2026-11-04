@@ -1,4 +1,4 @@
-import { buildRows, rowDuration, lerp, smoothstep, springStep } from './overview';
+import { buildRows, rowDuration, lerp, smoothstep, springStep, nearestCenter } from './overview';
 import './styles.css';
 import { startOverviewCanvas } from './overview-canvas';
 type Person = {
@@ -205,102 +205,134 @@ function choosePage() {
 }
 let overviewEl: HTMLElement | null = null;
 let overviewCanvas: ReturnType<typeof startOverviewCanvas> | undefined;
-let camera: { p: number; velocity: number; target: number; frame: number; last: number; focal: HTMLElement; morph: HTMLElement; mw: number; cx: number; cy: number; tx: number; ty: number; s0: number; width: number; height: number; sx: number; sy: number } | undefined;
-let hintTimer = 0, ignorePop = false;
+let camera: { p: number; velocity: number; target: number; frame: number; last: number; focal: HTMLElement; anchor: HTMLElement; rider: HTMLElement; top: HTMLElement; dim: HTMLElement[]; S: DOMRect; cw: number; ch: number; tx: number; ty: number; s0: number } | undefined;
+let hintTimer = 0, ignorePop = false, lockY = 0;
+// The page under the overview must never move (the real top card flies from/to its resting rect).
+window.addEventListener('scroll', () => { if (overviewEl && scrollY !== lockY) window.scrollTo({ top: lockY, behavior: 'instant' }); });
 window.addEventListener('popstate', () => { if (ignorePop) { ignorePop = false; return; } if (overviewEl && !history.state?.overview) closeOverview(); });
-function visibleOverviewCard(el: HTMLElement, name?: string): HTMLElement {
-    const cards = [...el.querySelectorAll<HTMLElement>('.overview-row .overview-card')]; // never the morph's own clone
-    const matches = cards.filter(card => card.dataset.name === name);
-    return (matches.length ? matches : cards).sort((a, b) => {
-        const distance = (card: HTMLElement) => { const r = card.getBoundingClientRect(); return Math.hypot(r.x + r.width / 2 - innerWidth / 2, r.y + r.height / 2 - innerHeight / 2); };
-        return distance(a) - distance(b);
-    })[0];
+function visibleOverviewCard(el: HTMLElement, name?: string, at?: { x: number; y: number }): HTMLElement {
+    const x = at?.x ?? innerWidth / 2, y = at?.y ?? innerHeight / 2;
+    if (!at) for (const hit of document.elementsFromPoint(x, y)) {
+        const card = hit.closest<HTMLElement>('.overview-row .overview-card');
+        if (card && el.contains(card) && !card.closest('.overview-morph') &&
+            (name === undefined || card.dataset.name === name)) return card;
+    }
+    // Cards can have pointer-events:none during transitions. Read each eligible rect only once.
+    const centers = [...el.querySelectorAll<HTMLElement>('.overview-row .overview-card')]
+        .filter(card => !card.closest('.overview-morph') && (name === undefined || card.dataset.name === name))
+        .map(card => {
+            const r = card.getBoundingClientRect();
+            return { value: card, x: r.x + r.width / 2, y: r.y + r.height / 2 };
+        });
+    return nearestCenter(centers, x, y)!;
 }
 function hideDragHint() {
     clearTimeout(hintTimer);
     overviewEl?.querySelector<HTMLElement>('.overview-drag-hint')?.classList.remove('is-visible');
 }
-function measureCamera(focal: HTMLElement, source: HTMLElement = focal) {
+/** Everything in <main> except the path down to the real top card (it flies itself; no clone, nothing to swap). */
+function dimTargets(top: HTMLElement) {
+    const out: HTMLElement[] = [];
+    for (let n: HTMLElement = top; n.parentElement && n.tagName !== 'MAIN'; n = n.parentElement)
+        for (const sib of n.parentElement.children) if (sib !== n) out.push(sib as HTMLElement);
+    return out;
+}
+function resetCameraCard(c: NonNullable<typeof camera>) {
+    for (const n of c.dim) n.style.opacity = '';
+    Object.assign(c.top.style, { transform: '', opacity: '', transformOrigin: '', pointerEvents: '', willChange: '' });
+    const stack = c.top.closest<HTMLElement>('.swipe-stack'); if (stack) stack.style.zIndex = '';
+    document.body.classList.remove('overview-flying');
+}
+function measureCamera(focal: HTMLElement) {
     const el = overviewEl!, plane = el.querySelector<HTMLElement>('.overview-plane')!;
     const top = document.querySelector<HTMLElement>('.swipe-card.is-top')!;
-    camera?.morph.remove(); camera?.focal.classList.remove('is-focal'); if (camera) camera.focal.style.opacity = '';
-    // Measure both endpoints at rest. These temporary writes are restored before paint.
-    const main = document.querySelector<HTMLElement>('main')!;
-    main.style.transform = ''; main.style.opacity = '';
-    focal.classList.add('is-focal');
-    const S = top.getBoundingClientRect();
+    if (camera) { camera.anchor.remove(); camera.rider.remove(); camera.focal.style.position = ''; camera.focal.classList.remove('is-focal'); camera.focal.style.opacity = ''; resetCameraCard(camera); }
+    const focalRow = focal.closest('.overview-row');
+    el.querySelectorAll('.overview-row.is-focal-row').forEach(r => { if (r !== focalRow) r.classList.remove('is-focal-row'); });
+    focalRow?.classList.add('is-focal-row');
     plane.style.transform = 'scale(1)';
-    const P = plane.getBoundingClientRect(), C = focal.getBoundingClientRect();
+    // Read the focal card where it is drawn right now (mid hover-lift included) before is-focal snaps it.
+    const C = focal.getBoundingClientRect();
+    focal.classList.add('is-focal');
+    const S = top.getBoundingClientRect(), P = plane.getBoundingClientRect();
+    const rowRects = !camera ? [...el.querySelectorAll<HTMLElement>('.overview-row')].map(row => ({ row, rect: row.getBoundingClientRect() })) : [];
     const cx = C.x + C.width / 2 - P.x - P.width / 2, cy = C.y + C.height / 2 - P.y - P.height / 2;
     const s0 = S.width / C.width;
-    const morph = document.createElement('div');
-    const face = top.cloneNode(true) as HTMLElement;
-    Object.assign(face.style, { position: 'absolute', inset: '0 auto auto 0', margin: '0', width: `${S.width}px`, height: `${S.height}px`, maxWidth: 'none', transform: `scale(${1/s0})`, transformOrigin: '0 0', visibility: 'visible' });
-    face.classList.add('overview-morph-face'); face.classList.remove('is-top');
-    // One surface, one moving element. Its two text layers never overlap in time: the stack text leaves, then a
-    // clone of the wall tile's text arrives, so at p=1 the morph is pixel-identical to the focal tile and swaps in one frame.
-    const tile = source.cloneNode(true) as HTMLElement;
-    tile.classList.add('overview-morph-tile'); tile.classList.remove('is-focal');
-    Object.assign(tile.style, { position: 'absolute', left: '50%', top: '50%', margin: '0', width: `${C.width}px`, height: `${C.height}px`, opacity: '0' });
-    const cs = getComputedStyle(focal);
-    Object.assign(morph.style, { background: cs.backgroundColor, borderRadius: cs.borderRadius, boxShadow: cs.boxShadow });
-    morph.append(face, tile);
-    // Neighbours reveal outward from the focal card on the same timeline.
-    const FX = C.x + C.width/2, FY = C.y + C.height/2;
-    // Rows (already composited layers) reveal outward from the focal row: ~10 compositor animations instead of ~150.
-    if (!camera) el.querySelectorAll<HTMLElement>('.overview-row').forEach(row => { const r = row.getBoundingClientRect(); row.classList.toggle('is-focal-row', row.contains(focal));
+    const FY = C.y + C.height/2;
+    rowRects.forEach(({ row, rect: r }) => { row.classList.toggle('is-focal-row', row.contains(focal));
         row.style.setProperty('--d', String(Math.min(1, Math.abs(r.y + r.height/2 - FY) / (C.height * 4)))); });
-    morph.classList.add('overview-morph'); morph.inert = true; morph.setAttribute('aria-hidden', 'true');
-    Object.assign(morph.style, { left: `${P.width / 2 + cx}px`, top: `${P.height / 2 + cy}px`, width: `${S.width / s0}px`, height: `${S.height / s0}px` });
-    plane.append(morph); focal.classList.add('is-focal');
+    // Zero-size point fixed in the plane where the focal tile sat (rows keep drifting; the camera path must not).
+    const anchor = document.createElement('i');
+    Object.assign(anchor.style, { position: 'absolute', left: `${P.width / 2 + cx}px`, top: `${P.height / 2 + cy}px`, width: '0', height: '0', pointerEvents: 'none' });
+    anchor.setAttribute('aria-hidden', 'true'); plane.append(anchor);
+    // A second point riding on the focal tile itself: it keeps the marquee drift / inertia the fixed anchor ignores.
+    const rider = document.createElement('i');
+    Object.assign(rider.style, { position: 'absolute', left: '50%', top: '50%', width: '0', height: '0', pointerEvents: 'none' });
+    rider.setAttribute('aria-hidden', 'true'); focal.style.position = 'relative'; focal.append(rider);
     const old = camera;
-    camera = { p: old?.p ?? 0, velocity: old?.velocity ?? 0, target: old?.target ?? 1, frame: old?.frame ?? 0, last: performance.now(), focal, morph, cx, cy,
+    camera = { anchor, rider, p: old?.p ?? 0, velocity: old?.velocity ?? 0, target: old?.target ?? 1, frame: old?.frame ?? 0, last: performance.now(), focal, top, dim: dimTargets(top), S,
+        cw: C.width, ch: C.height, s0,
         tx: S.x + S.width / 2 - (P.x + P.width / 2) - s0 * cx,
-        ty: S.y + S.height / 2 - (P.y + P.height / 2) - s0 * cy,
-        s0, mw: S.width / s0, width: C.width, height: C.height, sx: C.width / (S.width / s0), sy: C.height / (S.height / s0) };
-    top.closest<HTMLElement>('.swipe-stack')!.style.visibility = reducedMotion() ? '' : 'hidden';
+        ty: S.y + S.height / 2 - (P.y + P.height / 2) - s0 * cy };
+    if (!reducedMotion()) {
+        document.body.classList.add('overview-flying');
+        top.closest<HTMLElement>('.swipe-stack')!.style.zIndex = '60';
+        Object.assign(top.style, { transformOrigin: '50% 50%', pointerEvents: 'none', willChange: 'auto' });
+    }
 }
 function drawCamera() {
     if (!camera || !overviewEl) return;
     const c = camera, p = c.p, reduced = reducedMotion();
     const plane = overviewEl.querySelector<HTMLElement>('.overview-plane')!;
-    plane.style.transform = reduced ? '' : `translate(${c.tx * (1-p)}px,${c.ty * (1-p)}px) rotateX(${18*p}deg) rotateZ(${-22*p}deg) scale(${lerp(c.s0, innerWidth < 600 ? 1.25 : 1.45, p)})`;
+    const k = lerp(c.s0, innerWidth < 600 ? 1.25 : 1.45, p);
+    plane.style.transform = reduced ? '' : `translate(${c.tx * (1-p)}px,${c.ty * (1-p)}px) rotateX(${18*p}deg) rotateZ(${-22*p}deg) scale(${k})`;
     overviewEl.style.opacity = reduced ? String(p) : '1';
-    const fade = reduced ? 1 : smoothstep(.1, .6, p);
-    overviewEl.querySelector<HTMLElement>('.overview-background')!.style.opacity = String(fade);
-    overviewEl.querySelector<HTMLElement>('.overview-bar')!.style.opacity = String(smoothstep(.4, .9, p));
-    const morph = smoothstep(0, .8, p), done = reduced || p > .999;
-    c.morph.style.opacity = done ? '0' : '1';
-    c.focal.style.opacity = done ? '' : '0';
-    const sx = lerp(1, c.sx, morph), sy = lerp(1, c.sy, morph);
-    c.morph.style.transform = `translate(-50%,-50%) scale(${sx},${sy})`;
-    const face = c.morph.firstElementChild as HTMLElement, tile = c.morph.lastElementChild as HTMLElement;
-    face.style.opacity = String(1 - smoothstep(0, .22, p));
-    tile.style.opacity = String(smoothstep(.28, .5, p));
-    const u = (c.mw * sx) / c.width; // tile text keeps its aspect: uniform scale, counter the box's stretch
-    tile.style.transform = `translate(-50%,-50%) scale(${u/sx},${u/sy})`;
-    const main = document.querySelector<HTMLElement>('main')!;
-    main.style.transform = reduced ? '' : `scale(${1-.04*p})`; main.style.opacity = String(1-smoothstep(0, .55, p));
+    overviewEl.querySelector<HTMLElement>('.overview-background')!.style.opacity = String(reduced ? 1 : smoothstep(.1, .6, p));
+    const bar = overviewEl.querySelector<HTMLElement>('.overview-bar')!, barO = smoothstep(.4, .9, p);
+    // A transparent backdrop-filter still re-blurs the moving card underneath every frame; drop it once invisible.
+    bar.style.opacity = String(barO); bar.style.visibility = barO < .005 ? 'hidden' : '';
+    const dimmed = String(1-smoothstep(0, .55, p));
+    for (const n of c.dim) n.style.opacity = dimmed;
+    if (reduced) { c.focal.style.opacity = ''; return; }
+    // The real card flies to the focal tile's projected centre; at p=0 every term is exactly identity.
+    // Follow the still-moving tile while it is visible; blend to the fixed anchor as the card takes over, so p=0 is exact.
+    const m = smoothstep(0, .35, p), A = c.anchor.getBoundingClientRect(), R = c.rider.getBoundingClientRect(), w = smoothstep(.15, .4, p);
+    const F = { x: A.x + (R.x - A.x) * w, y: A.y + (R.y - A.y) * w, width: 0, height: 0 };
+    const sx = lerp(1, k * c.cw / c.S.width, m), sy = lerp(1, k * c.ch / c.S.height, m);
+    const dx = (F.x + F.width/2 - c.S.x - c.S.width/2), dy = (F.y + F.height/2 - c.S.y - c.S.height/2);
+    c.top.style.transform = Math.abs(p) < 1e-5 ? '' : `translate(${dx}px,${dy}px) perspective(1400px) rotateX(${18*p}deg) rotateZ(${-22*p}deg) scale(${sx},${sy})`;
+    c.top.style.opacity = String(1 - smoothstep(.15, .3, p));
+    c.focal.style.opacity = p > .999 && c.target === 1 ? '' : String(smoothstep(.22, .4, p));
+}
+const morphLive = () => !!camera;
+function clearOverviewMorph() {
+    if (!camera) return;
+    camera.focal.style.opacity = ''; camera.focal.classList.remove('is-focal'); camera.anchor.remove(); camera.rider.remove(); camera.focal.style.position = '';
+    resetCameraCard(camera);
 }
 function runCamera() {
     if (!camera || camera.frame) return;
-    camera.last = performance.now();
+    camera.last = performance.now(); let first = true;
     const tick = (now: number) => {
         const c = camera; if (!c || !overviewEl) return;
-        const dt = Math.min(.05, (now-c.last)/1000); c.last = now;
+        // First frame after open/close setup: cap dt so the motion starts from rest instead of jumping a long first step.
+        const dt = Math.min(first ? 1/60 : .05, (now-c.last)/1000); c.last = now; first = false;
         if (reducedMotion()) { c.p += Math.sign(c.target-c.p)*Math.min(Math.abs(c.target-c.p),dt/.2); c.velocity=0; }
         else { const step = springStep(c.p,c.velocity,c.target,dt); c.p=step.position; c.velocity=step.velocity; }
-        const settled = Math.abs(c.p-c.target)<.002 && Math.abs(c.velocity)<.025;
+        const settled = Math.abs(c.p-c.target)<(c.target ? .002 : .0004) && Math.abs(c.velocity)<.025;
         if (settled) { c.p=c.target; c.velocity=0; }
         drawCamera();
         overviewEl.classList.toggle('is-settled', settled && c.target === 1);
         if (!settled) { c.frame=requestAnimationFrame(tick); return; }
         c.frame=0;
+        clearOverviewMorph();
         if (c.target===0) {
             overviewCanvas?.stop(); overviewCanvas=undefined; overviewEl.remove(); overviewEl=null; camera=undefined;
             document.body.classList.remove('overview-lock');
-            document.querySelectorAll<HTMLElement>('main,.swipe-stack').forEach(node => { node.style.transform=''; node.style.opacity=''; node.style.visibility=''; });
-            document.getElementById('overview-open')?.focus();
+            
+            idle(schedulePrebuild);
+            if (pendingRender) { 'requestIdleCallback' in window ? requestIdleCallback(flushRender, { timeout: 400 }) : setTimeout(flushRender, 200); }
+            document.getElementById('overview-open')?.focus({ preventScroll: true });
         } else {
             overviewCanvas?.setActive(true);
             if (read('overviewDragHint')!=='1') {
@@ -315,10 +347,12 @@ function overviewNames() {
     if (deckSource !== rows) resetDeck();
     return deckRows.filter(p => p.name.startsWith(chooseInitial));
 }
-function openOverview() {
+type OverviewBuild = { key: string; el: HTMLElement; rows: string[]; done: number; job: number; canvas?: ReturnType<typeof startOverviewCanvas>; focal?: HTMLElement };
+let prebuilt: OverviewBuild | null = null;
+/** Everything the wall's markup depends on; any change rebuilds it. */
+function overviewPlan() {
     const names = overviewNames();
-    if (overviewEl && camera) { camera.target=1; overviewCanvas?.setActive(false); runCamera(); return; }
-    if (!names.length) return;
+    if (!names.length) return null;
     const w = swipeMessages[locale], mobile = window.innerWidth < 600;
     // Only enough cards to cover the viewport's circumcircle at the wall's scale (+1 row/col of slack for wrapping).
     const span = Math.hypot(innerWidth, innerHeight) * 1.15 / (mobile ? 1.25 : 1.45);
@@ -327,16 +361,94 @@ function openOverview() {
     const start = names.findIndex(p => p.name === topName);
     const ordered = start > 0 ? [...names.slice(start), ...names.slice(0,start)] : names;
     const grid = buildRows(ordered, Math.max(8, Math.ceil(span / 110) + 2), perRow);
-    const top = document.querySelector<HTMLElement>('.swipe-card.is-top');
     const card = (p: Person) => `<button type="button" class="overview-card${p.name.length > 9 ? ' is-long' : ''}" data-name="${esc(p.name)}"><strong>${esc(p.name)}${selected.has(p.name) ? '<span class="overview-star" aria-label="★">★</span>' : ''}</strong><small>${locale === 'zh' ? `${year} 年第 ${p.rank} 名 · ${p.occurrences.toLocaleString(locale)} ${w.ovBirths}` : `#${p.rank} in ${year} · ${p.occurrences.toLocaleString(locale)} ${w.ovBirths}`}</small></button>`;
+    const rows = grid.map((row, r) => { const set = row.map(card).join(''); return `<div class="overview-row ${r % 2 ? 'is-alt' : ''}" style="--dur:${rowDuration(r)}s"><div class="overview-track"><div class="overview-set">${set}</div><div class="overview-set" aria-hidden="true">${set.replaceAll('<button type="button"', '<button type="button" tabindex="-1"')}</div><div class="overview-set" aria-hidden="true">${set.replaceAll('<button type="button"', '<button type="button" tabindex="-1"')}</div></div></div>`; });
+    const shell = `<div class="overview-background"></div><div class="overview-drag-hint"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M8 12V5a2 2 0 0 1 4 0v6-3a2 2 0 0 1 4 0v3-1a2 2 0 0 1 4 0v6c0 4-3 6-7 6-2 0-4-1-5-3l-4-6a2 2 0 0 1 3-2l2 2"/></svg>${locale === 'zh' ? '拖动浏览' : 'Drag to explore'}</div><div class="overview-bar"><div><h2>${w.overviewTitle}</h2><p>${year} · ${messages[locale][gender]}${chooseInitial ? ` · ${chooseInitial}` : ''} · ${w.overviewHint}</p></div><button type="button" id="overview-close">← ${w.back}</button></div><div class="overview-stage"><div class="overview-plane" style="--per:${perRow}"></div></div>`;
+    return { key: overviewKey(), shell, rows, title: w.overviewTitle };
+}
+/** Cheap identity of the wall overviewPlan() would build (no markup generated). */
+function overviewKey() {
+    return [locale, year, gender, chooseInitial, chooseOrder, innerWidth, innerHeight, availableCards()[0]?.name, overviewNames().length, [...selected.keys()].join(',')].join('|');
+}
+function overviewShell(plan: NonNullable<ReturnType<typeof overviewPlan>>) {
     const el = document.createElement('div');
-    el.id = 'overview'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-modal', 'true'); el.setAttribute('aria-label', w.overviewTitle);
-    el.innerHTML = `<div class="overview-background"></div><div class="overview-drag-hint"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M8 12V5a2 2 0 0 1 4 0v6-3a2 2 0 0 1 4 0v3-1a2 2 0 0 1 4 0v6c0 4-3 6-7 6-2 0-4-1-5-3l-4-6a2 2 0 0 1 3-2l2 2"/></svg>${locale === 'zh' ? '拖动浏览' : 'Drag to explore'}</div><div class="overview-bar"><div><h2>${w.overviewTitle}</h2><p>${year} · ${messages[locale][gender]}${chooseInitial ? ` · ${chooseInitial}` : ''} · ${w.overviewHint}</p></div><button type="button" id="overview-close">← ${w.back}</button></div><div class="overview-stage"><div class="overview-plane" style="--per:${perRow}">${grid.map((row, r) => `<div class="overview-row ${r % 2 ? 'is-alt' : ''}" style="--dur:${rowDuration(r)}s"><div class="overview-track"><div class="overview-set">${row.map(card).join('')}</div><div class="overview-set" aria-hidden="true">${row.map(card).join('')}</div><div class="overview-set" aria-hidden="true">${row.map(card).join('')}</div></div></div>`).join('')}</div></div>`;
-    el.querySelectorAll<HTMLElement>('.overview-set[aria-hidden] button').forEach(b => b.tabIndex = -1);
-    document.body.append(el);
+    el.id = 'overview'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-modal', 'true'); el.setAttribute('aria-label', plan.title);
+    el.innerHTML = plan.shell;
+    return el;
+}
+function dropPrebuilt() { if (prebuilt) { cancelIdle(prebuilt.job); prebuilt.canvas?.stop(); prebuilt.el.remove(); prebuilt = null; } }
+const onOverviewDrag = () => { save('overviewDragHint','1'); hideDragHint(); };
+const idle = (fn: (d?: IdleDeadline) => void): number => typeof requestIdleCallback === 'function' ? requestIdleCallback(fn, { timeout: 2000 }) : (setTimeout as (f: () => void, ms: number) => number)(fn, 50);
+const cancelIdle = (id: number) => typeof cancelIdleCallback === 'function' ? cancelIdleCallback(id) : clearTimeout(id);
+/** Build the wall off-screen in idle slices (one row per slice, each laid out inside its own slice), then park it
+ *  with content-visibility:hidden: not focusable, not painted, but its layout is kept, so opening only has to paint. */
+function schedulePrebuild() {
+    if (route() !== 'choose' || reducedMotion()) { dropPrebuilt(); return; }
+    if (loading || failed || overviewEl || deckSource !== rows) return;
+    if (prebuilt && prebuilt.key === overviewKey()) return;
+    const plan = overviewPlan();
+    if (!plan) { dropPrebuilt(); return; }
+    dropPrebuilt();
+    const el = overviewShell(plan); el.classList.add('is-pre'); el.setAttribute('aria-hidden', 'true');
+    el.querySelector('#overview-close')!.setAttribute('tabindex', '-1');
+    const build: OverviewBuild = prebuilt = { key: plan.key, el, rows: plan.rows, done: 0, job: 0 };
+    const plane = el.querySelector<HTMLElement>('.overview-plane')!;
+    const step = (d?: IdleDeadline) => {
+        if (prebuilt !== build) return;
+        if (!el.isConnected) document.body.append(el);
+        // Unfocusable until opened (tabindex is not a style input, so restoring it later restyles nothing).
+        do { plane.insertAdjacentHTML('beforeend', build.rows[build.done++].replaceAll('<button type="button" class', '<button type="button" tabindex="-1" data-tab class')); void plane.offsetHeight; }
+        while (build.done < build.rows.length && d && d.timeRemaining() > 6);
+        if (build.done < build.rows.length) build.job = idle(step);
+        else build.job = idle(() => {
+            if (prebuilt !== build) return;
+            // Same setup openOverview does, done now: canvas geometry, top name centred, focal card chosen.
+            const canvas = build.canvas = startOverviewCanvas(el, false, onOverviewDrag, true);
+            const top = availableCards()[0]?.name, prev = plane.style.transform;
+            plane.style.transform = 'none';
+            const P = plane.getBoundingClientRect(), mid = { x: P.x + P.width / 2, y: P.y + P.height / 2 };
+            const C = visibleOverviewCard(el, top, mid).getBoundingClientRect();
+            canvas.panBy(mid.x - C.x - C.width / 2, mid.y - C.y - C.height / 2);
+            build.focal = visibleOverviewCard(el, top, mid);
+            plane.style.transform = prev;
+            build.job = idle(() => { if (prebuilt === build) el.classList.add('is-parked'); });
+        });
+    };
+    build.job = idle(step);
+}
+function takePrebuilt(key: string) {
+    const b = prebuilt;
+    if (!b || b.key !== key || b.done < b.rows.length || !b.el.classList.contains('is-parked')) { dropPrebuilt(); return null; }
+    prebuilt = null; return b;
+}
+function openOverview() {
+    if (overviewEl && camera) {
+        if (!morphLive()) measureCamera(visibleOverviewCard(overviewEl));
+        camera.target=1; overviewCanvas?.setActive(false); runCamera();
+        const el = overviewEl; requestAnimationFrame(() => { if (overviewEl === el && camera?.target === 1) el.classList.add('is-revealed'); });
+        if (!history.state?.overview) history.pushState({ overview: 1 }, '', location.href);
+        return;
+    }
+    const top = document.querySelector<HTMLElement>('.swipe-card.is-top');
+    const pre = takePrebuilt(overviewKey());
+    let el = pre?.el;
+    if (el) {
+        el.classList.remove('is-pre', 'is-parked'); el.removeAttribute('aria-hidden');
+        el.querySelector('#overview-close')!.removeAttribute('tabindex');
+        el.querySelectorAll('[data-tab]').forEach(b => { b.removeAttribute('tabindex'); b.removeAttribute('data-tab'); });
+    }
+    else {
+        const plan = overviewPlan();
+        if (!plan) return;
+        el = overviewShell(plan);
+        el.querySelector<HTMLElement>('.overview-plane')!.innerHTML = plan.rows.join('');
+        document.body.append(el);
+    }
     document.body.classList.add('overview-lock');
-    overviewEl = el;
-    overviewCanvas = startOverviewCanvas(el, reducedMotion(), () => { save('overviewDragHint','1'); hideDragHint(); });
+    lockY = scrollY; overviewEl = el;
+    if (pre?.canvas && pre.focal) { overviewCanvas = pre.canvas; overviewCanvas.resume(); measureCamera(pre.focal); }
+    else {
+    overviewCanvas = startOverviewCanvas(el, reducedMotion(), onOverviewDrag);
     // Bring an instance of the top name to the screen centre before measuring, so the camera pulls straight back from it.
     {
         const plane = el.querySelector<HTMLElement>('.overview-plane')!, prev = plane.style.transform;
@@ -346,27 +458,37 @@ function openOverview() {
         plane.style.transform = prev;
     }
     measureCamera(visibleOverviewCard(el, top?.dataset.name));
+    }
     drawCamera(); runCamera();
-    requestAnimationFrame(() => el.classList.add('is-revealed'));
+    const opened = el;
+    // focus() forces a full style/layout pass; inside the next frame that pass is already being paid for.
+    requestAnimationFrame(() => { opened.classList.add('is-revealed'); if (overviewEl === opened) opened.querySelector<HTMLElement>('#overview-close')!.focus({ preventScroll: true }); });
     history.pushState({ overview: 1 }, '', location.href);
     el.querySelector<HTMLElement>('#overview-close')!.onclick = () => closeOverview();
     el.onclick = e => { const b = (e.target as HTMLElement).closest<HTMLElement>('.overview-card'); if (b) closeOverview(b.dataset.name!, b); };
-    el.querySelector<HTMLElement>('#overview-close')!.focus();
 }
+/** Card-click close: swap in only the stack (what the morph measures); the full render() waits until the camera lands. */
+let pendingRender = false;
+function swapStack() {
+    const tpl = document.createElement('template'); tpl.innerHTML = choosePage();
+    for (const sel of ['.swipe-stack', '.deck-meta']) { const next = tpl.content.querySelector(sel), cur = document.querySelector(sel); if (next && cur) cur.replaceWith(next); }
+    document.getElementById('overview-open')?.addEventListener('click', openOverview);
+    pendingRender = true;
+}
+function flushRender() { if (pendingRender) { pendingRender = false; if (!overviewEl) { const f = document.activeElement?.id; render(); if (f) document.getElementById(f)?.focus({ preventScroll: true }); } } }
 function closeOverview(name?: string, clicked?: HTMLElement) {
     if (!overviewEl || !camera) return;
-    hideDragHint(); overviewCanvas?.setActive(false); overviewEl.classList.remove('is-settled');
+    hideDragHint(); overviewCanvas?.setActive(false);
     if (camera.target === 0) return;
     // Mid-flight reversal keeps the same geometry, position and velocity.
-    if (camera.p === 1 || name) {
+    if (camera.p === 1 || name || !morphLive()) {
         // Without a choice, land from whatever card is nearest the centre (after a drag the top name may be far away);
-        // the morph carries the top name's face, so the stack it returns to still matches.
-        const focal = clicked ?? visibleOverviewCard(overviewEl);
-        const source = clicked ?? overviewEl.querySelector<HTMLElement>(`.overview-card[data-name="${CSS.escape(availableCards()[0]?.name ?? '')}"]`) ?? focal;
-        if (name) { pinned=name; decisions=decisions.filter(d => d.person.name!==name); render(); }
-        measureCamera(focal, source);
+        // the morph is gone; the real top card flies back itself.
+        if (name) { pinned=name; decisions=decisions.filter(d => d.person.name!==name); swapStack(); }
+        // The real top card flies back, so land on the nearest instance of its own name.
+        measureCamera(clicked ?? visibleOverviewCard(overviewEl, availableCards()[0]?.name));
     }
-    overviewEl.classList.remove('is-revealed');
+    overviewEl.classList.remove('is-settled', 'is-revealed');
     if (history.state?.overview) { ignorePop = true; history.back(); }
     camera.target=0; drawCamera(); runCamera();
 }
@@ -481,12 +603,13 @@ window.addEventListener('keydown', e => {
     else if (!e.ctrlKey && e.code === 'Space') { e.preventDefault(); const p = availableCards()[0]; if (p) speak(p.name); }
 });
 function render() {
-    deciding = false;
+    deciding = false; pendingRender = false;
     const t = messages[locale], current = route();
     document.documentElement.lang = locale === 'zh' ? 'zh-CN' : 'en';
     document.title = `${t[current as 'choose'] || t.home} · ${t.brand}`;
     app.innerHTML = `<header><a class="brand" href="#/"><span class="brand-icon" aria-hidden="true">n.</span>${t.brand}</a><button id="locale" class="locale" aria-label="${locale === 'en' ? '切换中文' : 'Switch to English'}">${locale === 'en' ? '中文' : 'English'}</button></header><nav aria-label="${t.brand}">${(['', 'choose', 'browser', 'check'] as const).map(r => `<a href="#/${r}" ${current === r ? 'aria-current="page"' : ''}>${r ? t[r] : t.home}</a>`).join('')}</nav><main>${!meta ? `<p role="${failed ? 'alert' : 'status'}">${failed ? t.error : t.loading}</p>${failed ? `<button id="retry-meta">${t.retry}</button>` : ''}` : current === '' ? `<section class="hero"><div class="hero-colophon"><span>${t.eyebrow}</span><span>SSA · ${meta.years[0]}–${meta.years[1]}</span></div><h1>${t.title}</h1><p class="intro">${t.intro}</p><a class="primary" href="#/choose">${t.choose} <span aria-hidden="true">↗</span></a><div class="word-art" aria-hidden="true"><span>Oliver</span><span>Charlotte</span><span>James</span><span>Emma</span><span>You.</span></div></section><section class="method"><h2>${t.method}</h2><div class="steps">${(['one', 'two', 'three'] as const).map((key, i) => `<article><span class="step-number">0${i + 1}</span><h3>${t[key]}</h3><p>${t[`${key}Text`]}</p></article>`).join('')}</div></section>` : current === 'check' ? `<section class="panel check-panel"><p class="eyebrow">${t.check}</p><h1>${t.handle}</h1><ol class="handle-steps muted"><li>${t.handleStep1}</li><li>${t.handleStep2}</li><li>${t.handleStep3}</li></ol>${selected.size ? `<fieldset class="handle-shortlist"><legend>${t.quickFill}</legend><div>${[...selected.values()].map(p => `<button type="button" data-fill="${esc(p.name)}">${esc(p.name)}</button>`).join('')}</div></fieldset>` : ''}<form id="handle-form"><label>${t.handleLabel}<input id="handle" required pattern="[A-Za-z0-9_.]{1,30}" maxlength="30" value="${esc(handle)}" autocomplete="off" title="${t.invalid}"></label><button class="primary">${t.checkName}</button></form><div id="profile-links" aria-live="polite"></div></section>${shortlist()}` : current === 'choose' ? choosePage() : `<div class="page-title"><div><p class="eyebrow">${current === 'choose' ? '01 — 02 — 03' : 'SSA / ' + year}</p><h1>${t[current as 'choose']}</h1></div><button id="reset">${t.reset}</button></div><p class="muted guidance">${t.oneText} ${t.twoText} ${t.threeText}</p><section class="panel">${form()}</section><div class="workspace"><section class="panel results"><div class="section-heading"><h2>${shortlistOnly ? t.selected : t.results}</h2>${current === 'choose' ? `<button id="show-selected">${shortlistOnly ? t.back : `${t.selected} (${selected.size})`}</button>` : ''}</div>${speechSettings()}${shortlistOnly ? shortlist() : `<fieldset class="letters"><legend>${t.initial}</legend><div>${['', ...'ABCDEFGHIJKLMNOPQRSTUVWXYZ'].map(l => `<button data-letter="${l}" aria-pressed="${initial === l}">${l || t.all}</button>`).join('')}</div></fieldset>${results(current === 'browser')}`}</section>${shortlist()}</div>`}</main>${meta ? `<footer><a href="${esc(meta.url)}" target="_blank" rel="noopener noreferrer">${t.data} ${meta.years[0]}–${meta.years[1]}</a><p>${t.about}</p></footer>` : ''}`;
     bind();
+    idle(schedulePrebuild);
 }
 function bind() {
     if (route() === 'choose') bindSwipe();
@@ -559,7 +682,7 @@ function updateSpeech() {
 }
 synth?.addEventListener('voiceschanged', () => { voices = synth.getVoices(); updateSpeech(); });
 voices = synth?.getVoices() ?? [];
-window.addEventListener('hashchange', () => { if (overviewEl) { overviewCanvas?.stop(); overviewCanvas=undefined; overviewEl.remove(); overviewEl=null; camera=undefined; document.body.classList.remove('overview-lock'); document.querySelectorAll<HTMLElement>('main,.swipe-stack').forEach(n => { n.style.transform=''; n.style.opacity=''; n.style.visibility=''; }); } shortlistOnly = false; ensureNames(); render(); });
+window.addEventListener('hashchange', () => { if (overviewEl) { if (camera) cancelAnimationFrame(camera.frame); clearOverviewMorph(); overviewCanvas?.stop(); overviewCanvas=undefined; overviewEl.remove(); overviewEl=null; camera=undefined; document.body.classList.remove('overview-lock'); document.querySelectorAll<HTMLElement>('main,.swipe-stack').forEach(n => { n.style.transform=''; n.style.opacity=''; n.style.visibility=''; }); } shortlistOnly = false; ensureNames(); render(); });
 async function start() {
     failed = false;
     render();
