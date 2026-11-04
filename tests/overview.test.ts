@@ -51,3 +51,35 @@ test('drag threshold measures radial travel at the six pixel boundary', () => {
     assert.equal(isDrag(0, -6), true);
     assert.equal(isDrag(-5, -5), true);
 });
+
+test('spring settles without overshooting and reverses with continuous velocity', async () => {
+    const { springStep } = await import('../src/overview.ts');
+    let p = 0, v = 0;
+    for (let i=0;i<45;i++) { const s=springStep(p,v,1,1/60); p=s.position; v=s.velocity; assert.ok(p>=0 && p<=1); }
+    assert.ok(p>.999);
+    const reverse=springStep(p,v,0,1/60);
+    assert.ok(reverse.position<p); assert.ok(reverse.velocity<0);
+    assert.deepEqual(springStep(.4,2,1,0),{position:.4,velocity:2});
+    assert.deepEqual(springStep(.4,2,1,1),springStep(.4,2,1,.05));
+});
+test('smoothstep clamps endpoints and lerp shares progress', async () => {
+    const { smoothstep, lerp } = await import('../src/overview.ts');
+    assert.equal(smoothstep(0,.5,-1),0); assert.equal(smoothstep(0,.5,1),1);
+    assert.equal(smoothstep(0,.5,.25),.5); assert.equal(lerp(10,20,.5),15);
+});
+test('velocity estimator ignores stale samples, handles duplicates and clamps speed', async () => {
+    const { estimateVelocity } = await import('../src/overview.ts');
+    assert.deepEqual(estimateVelocity([],100),{x:0,y:0});
+    const samples=[{x:0,y:0,time:0},{x:20,y:10,time:20},{x:40,y:20,time:40}];
+    assert.deepEqual(estimateVelocity(samples,40),{x:1000,y:500});
+    assert.deepEqual(estimateVelocity(samples,200),{x:0,y:0});
+    assert.ok(Math.abs(Math.hypot(...Object.values(estimateVelocity(samples,40,100)))-100)<1e-9);
+    assert.deepEqual(estimateVelocity([{x:0,y:0,time:0},{x:20,y:10,time:0}],0),{x:0,y:0});
+});
+test('iOS decay is time independent and stops below five pixels per second', async () => {
+    const { decayStep } = await import('../src/overview.ts');
+    const a=decayStep(1000,40),b=decayStep(a.velocity,60),whole=decayStep(1000,100);
+    assert.ok(Math.abs(a.distance+b.distance-whole.distance)<1e-9);
+    assert.ok(Math.abs(whole.velocity-1000*Math.pow(.998,100))<1e-9);
+    assert.equal(decayStep(4,16).velocity,0);
+});

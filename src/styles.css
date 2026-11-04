@@ -787,4 +787,15 @@ body.overview-lock { overflow:hidden }
 .overview-row { position:absolute; top:50%; left:0; will-change:transform }
 .overview-track { animation:none; will-change:transform }
 .overview-card { transition:transform .2s ease }
-.overview-flight { will-change:transform,opacity }
+
+#overview { background:transparent }
+.overview-background { position:absolute; inset:0; background:var(--background); pointer-events:none }
+.overview-stage { -webkit-mask-image:none; mask-image:none }
+.overview-plane { will-change:transform }
+.overview-card { opacity:var(--wall-opacity,1) }
+.overview-card.is-focal { opacity:1 }
+.overview-stage.is-dragging .overview-card { transform:scale(.97) }
+.overview-drag-hint { position:absolute; z-index:3; bottom:32px; left:50%; transform:translateX(-50%); display:flex; align-items:center; gap:10px; padding:12px 20px; border-radius:999px; background:var(--text); color:var(--background); pointer-events:none; opacity:0; transition:opacity 200ms ease }
+.overview-drag-hint.is-visible { opacity:1 }
+.overview-morph { position:absolute; z-index:10; pointer-events:none; transform-origin:center; will-change:transform,opacity }
+#overview:not(.is-settled) .overview-card { pointer-events:none }

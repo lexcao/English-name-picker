@@ -1,4 +1,4 @@
-import { buildRows, rowDuration } from './overview';
+import { buildRows, rowDuration, lerp, smoothstep, springStep } from './overview';
 import './styles.css';
 import { startOverviewCanvas } from './overview-canvas';
 type Person = {
@@ -204,121 +204,144 @@ function choosePage() {
     <div class="swipe-actions"><button id="skip" ${!cards.length || loading || failed ? 'disabled' : ''}>← ${w.skip}</button><button id="play" ${!cards.length || loading || failed || !synth ? 'disabled' : ''}>♪ ${w.play}</button><button id="keep" class="primary" ${!cards.length || loading || failed ? 'disabled' : ''}>${w.keep} ♡</button><button id="undo" class="swipe-undo" ${!decisions.length ? 'disabled' : ''}>↶ ${w.undo}</button></div><p class="swipe-keys muted">${w.keys}</p></section><div id="choose-shortlist" tabindex="-1">${shortlist().replace(t.empty, w.empty)}${speechSettings()}</div></div></section>`;
 }
 let overviewEl: HTMLElement | null = null;
-let overviewClosing = false;
-let stopOverviewCanvas: (() => void) | undefined;
-const overviewEase = 'cubic-bezier(0.32,0.72,0,1)';
-const flatPlane = 'rotateX(0deg) rotateZ(0deg) scale(1)';
-let overviewAnimations: Animation[] = [];
-function overviewAnimate(node: HTMLElement, frames: Keyframe[], duration: number, delay = 0) {
-    const animation = node.animate(frames, { duration, delay, easing: overviewEase, fill: 'both' });
-    overviewAnimations.push(animation);
-    return animation;
+let overviewCanvas: ReturnType<typeof startOverviewCanvas> | undefined;
+let camera: { p: number; velocity: number; target: number; frame: number; last: number; focal: HTMLElement; morph: HTMLElement; cx: number; cy: number; tx: number; ty: number; s0: number; width: number; height: number; sx: number; sy: number } | undefined;
+let hintTimer = 0;
+function visibleOverviewCard(el: HTMLElement, name?: string): HTMLElement {
+    const cards = [...el.querySelectorAll<HTMLElement>('.overview-card')];
+    const matches = cards.filter(card => card.dataset.name === name);
+    return (matches.length ? matches : cards).sort((a, b) => {
+        const distance = (card: HTMLElement) => { const r = card.getBoundingClientRect(); return Math.hypot(r.x + r.width / 2 - innerWidth / 2, r.y + r.height / 2 - innerHeight / 2); };
+        return distance(a) - distance(b);
+    })[0];
 }
-function visibleOverviewCard(el: HTMLElement, name?: string) {
-    return [...el.querySelectorAll<HTMLElement>('.overview-card')].find(card => {
-        if (name && card.dataset.name !== name) return false;
-        const r = card.getBoundingClientRect();
-        return r.left >= 0 && r.right <= innerWidth && r.top >= 90 && r.bottom <= innerHeight;
-    });
+function hideDragHint() {
+    clearTimeout(hintTimer);
+    overviewEl?.querySelector<HTMLElement>('.overview-drag-hint')?.classList.remove('is-visible');
 }
-function flyOverviewCard(source: HTMLElement, from: DOMRect, to: DOMRect, opening: boolean) {
-    const clone = source.cloneNode(true) as HTMLElement;
-    clone.removeAttribute('id'); clone.setAttribute('aria-hidden', 'true'); clone.inert = true;
-    clone.classList.add('overview-flight');
-    Object.assign(clone.style, { position: 'fixed', inset: 'auto', left: `${from.x}px`, top: `${from.y}px`,
-        width: `${from.width}px`, height: `${from.height}px`, margin: '0', boxSizing: 'border-box',
-        zIndex: '100', transformOrigin: '0 0', pointerEvents: 'none' });
-    document.body.append(clone);
-    const transform = `translate(${to.x - from.x}px,${to.y - from.y}px) scale(${to.width / from.width},${to.height / from.height})`;
-    const animation = overviewAnimate(clone, [{ transform: 'none', opacity: opening ? 1 : .8 }, { transform, opacity: opening ? 0 : 1 }], 700);
-    void animation.finished.catch(() => {}).then(() => clone.remove());
+function measureCamera(focal: HTMLElement) {
+    const el = overviewEl!, plane = el.querySelector<HTMLElement>('.overview-plane')!;
+    const top = document.querySelector<HTMLElement>('.swipe-card.is-top')!;
+    camera?.morph.remove(); camera?.focal.classList.remove('is-focal'); if (camera) camera.focal.style.opacity = '';
+    // Measure both endpoints at rest. These temporary writes are restored before paint.
+    const main = document.querySelector<HTMLElement>('main')!;
+    main.style.transform = ''; main.style.opacity = '';
+    const S = top.getBoundingClientRect();
+    plane.style.transform = 'scale(1)';
+    const P = plane.getBoundingClientRect(), C = focal.getBoundingClientRect();
+    const cx = C.x + C.width / 2 - P.x - P.width / 2, cy = C.y + C.height / 2 - P.y - P.height / 2;
+    const s0 = S.width / C.width;
+    const morph = document.createElement('div');
+    const face = top.cloneNode(true) as HTMLElement;
+    Object.assign(face.style, { position: 'absolute', inset: '0 auto auto 0', margin: '0', width: `${S.width}px`, height: `${S.height}px`, maxWidth: 'none', transform: `scale(${1/s0})`, transformOrigin: '0 0', visibility: 'visible' });
+    morph.append(face);
+    morph.classList.add('overview-morph'); morph.inert = true; morph.setAttribute('aria-hidden', 'true');
+    Object.assign(morph.style, { left: `${P.width / 2 + cx}px`, top: `${P.height / 2 + cy}px`, width: `${S.width / s0}px`, height: `${S.height / s0}px` });
+    plane.append(morph); focal.classList.add('is-focal');
+    const old = camera;
+    camera = { p: old?.p ?? 0, velocity: old?.velocity ?? 0, target: old?.target ?? 1, frame: old?.frame ?? 0, last: performance.now(), focal, morph, cx, cy,
+        tx: S.x + S.width / 2 - (P.x + P.width / 2) - s0 * cx,
+        ty: S.y + S.height / 2 - (P.y + P.height / 2) - s0 * cy,
+        s0, width: C.width, height: C.height, sx: C.width / (S.width / s0), sy: C.height / (S.height / s0) };
+    top.closest<HTMLElement>('.swipe-stack')!.style.visibility = reducedMotion() ? '' : 'hidden';
 }
-
+function drawCamera() {
+    if (!camera || !overviewEl) return;
+    const c = camera, p = c.p, reduced = reducedMotion();
+    const plane = overviewEl.querySelector<HTMLElement>('.overview-plane')!;
+    plane.style.transform = reduced ? '' : `translate(${c.tx * (1-p)}px,${c.ty * (1-p)}px) rotateX(${18*p}deg) rotateZ(${-22*p}deg) scale(${lerp(c.s0, innerWidth < 600 ? 1.25 : 1.45, p)})`;
+    overviewEl.style.opacity = reduced ? String(p) : '1';
+    const fade = reduced ? 1 : smoothstep(0, .5, p);
+    overviewEl.querySelector<HTMLElement>('.overview-background')!.style.opacity = String(fade);
+    overviewEl.querySelector<HTMLElement>('.overview-bar')!.style.opacity = String(fade);
+    overviewEl.style.setProperty('--wall-opacity', String(reduced ? 1 : smoothstep(.05, .6, p)));
+    const morph = smoothstep(0, .6, p);
+    // Hand-off: the stack face fades before the tile face appears, so the two layouts never double-expose.
+    c.morph.style.opacity = reduced ? '0' : String(1-smoothstep(.12, .42, p));
+    c.focal.style.opacity = reduced ? '' : String(smoothstep(.3, .55, p));
+    c.morph.style.transform = `translate(-50%,-50%) scale(${lerp(1,c.sx,morph)},${lerp(1,c.sy,morph)})`;
+    const main = document.querySelector<HTMLElement>('main')!;
+    main.style.transform = reduced ? '' : `scale(${1-.04*p})`; main.style.opacity = String(1-.6*p);
+}
+function runCamera() {
+    if (!camera || camera.frame) return;
+    camera.last = performance.now();
+    const tick = (now: number) => {
+        const c = camera; if (!c || !overviewEl) return;
+        const dt = Math.min(.05, (now-c.last)/1000); c.last = now;
+        if (reducedMotion()) { c.p += Math.sign(c.target-c.p)*Math.min(Math.abs(c.target-c.p),dt/.2); c.velocity=0; }
+        else { const step = springStep(c.p,c.velocity,c.target,dt); c.p=step.position; c.velocity=step.velocity; }
+        const settled = Math.abs(c.p-c.target)<.002 && Math.abs(c.velocity)<.025;
+        if (settled) { c.p=c.target; c.velocity=0; }
+        drawCamera();
+        overviewEl.classList.toggle('is-settled', settled && c.target === 1);
+        if (!settled) { c.frame=requestAnimationFrame(tick); return; }
+        c.frame=0;
+        if (c.target===0) {
+            overviewCanvas?.stop(); overviewCanvas=undefined; overviewEl.remove(); overviewEl=null; camera=undefined;
+            document.body.classList.remove('overview-lock');
+            document.querySelectorAll<HTMLElement>('main,.swipe-stack').forEach(node => { node.style.transform=''; node.style.opacity=''; node.style.visibility=''; });
+            document.getElementById('overview-open')?.focus();
+        } else {
+            overviewCanvas?.setActive(true);
+            if (read('overviewDragHint')!=='1') {
+                overviewEl.querySelector<HTMLElement>('.overview-drag-hint')!.classList.add('is-visible');
+                overviewCanvas?.nudge(); hintTimer=window.setTimeout(hideDragHint,3500);
+            }
+        }
+    };
+    camera.frame=requestAnimationFrame(tick);
+}
 function overviewNames() {
     if (deckSource !== rows) resetDeck();
     return deckRows.filter(p => p.name.startsWith(chooseInitial));
 }
 function openOverview() {
     const names = overviewNames();
-    if (!names.length || overviewEl) return;
+    if (overviewEl && camera) { camera.target=1; overviewCanvas?.setActive(false); runCamera(); return; }
+    if (!names.length) return;
     const w = swipeMessages[locale], mobile = window.innerWidth < 600;
     const span = Math.hypot(innerWidth, innerHeight) * 3;
     const perRow = Math.max(mobile ? 10 : 14, Math.ceil(span / (mobile ? 212 : 254)));
-    const grid = buildRows(names, Math.max(12, Math.ceil(span / 110)), perRow);
+    const topName = availableCards()[0]?.name;
+    const start = names.findIndex(p => p.name === topName);
+    const ordered = start > 0 ? [...names.slice(start), ...names.slice(0,start)] : names;
+    const grid = buildRows(ordered, Math.max(12, Math.ceil(span / 110)), perRow);
     const top = document.querySelector<HTMLElement>('.swipe-card.is-top');
     const card = (p: Person) => `<button type="button" class="overview-card${p.name.length > 9 ? ' is-long' : ''}" data-name="${esc(p.name)}"><strong>${esc(p.name)}${selected.has(p.name) ? '<span class="overview-star" aria-label="★">★</span>' : ''}</strong><small>${locale === 'zh' ? `${year} 年第 ${p.rank} 名 · ${p.occurrences.toLocaleString(locale)} ${w.ovBirths}` : `#${p.rank} in ${year} · ${p.occurrences.toLocaleString(locale)} ${w.ovBirths}`}</small></button>`;
     const el = document.createElement('div');
     el.id = 'overview'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-modal', 'true'); el.setAttribute('aria-label', w.overviewTitle);
-    el.innerHTML = `<div class="overview-bar"><div><h2>${w.overviewTitle}</h2><p>${year} · ${messages[locale][gender]}${chooseInitial ? ` · ${chooseInitial}` : ''} · ${w.overviewHint}</p></div><button type="button" id="overview-close">← ${w.back}</button></div><div class="overview-stage"><div class="overview-plane" style="--per:${perRow}">${grid.map((row, r) => `<div class="overview-row ${r % 2 ? 'is-alt' : ''}" style="--dur:${rowDuration(r)}s"><div class="overview-track"><div class="overview-set">${row.map(card).join('')}</div><div class="overview-set" aria-hidden="true">${row.map(card).join('')}</div><div class="overview-set" aria-hidden="true">${row.map(card).join('')}</div></div></div>`).join('')}</div></div>`;
+    el.innerHTML = `<div class="overview-background"></div><div class="overview-drag-hint"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M8 12V5a2 2 0 0 1 4 0v6-3a2 2 0 0 1 4 0v3-1a2 2 0 0 1 4 0v6c0 4-3 6-7 6-2 0-4-1-5-3l-4-6a2 2 0 0 1 3-2l2 2"/></svg>${locale === 'zh' ? '拖动浏览' : 'Drag to explore'}</div><div class="overview-bar"><div><h2>${w.overviewTitle}</h2><p>${year} · ${messages[locale][gender]}${chooseInitial ? ` · ${chooseInitial}` : ''} · ${w.overviewHint}</p></div><button type="button" id="overview-close">← ${w.back}</button></div><div class="overview-stage"><div class="overview-plane" style="--per:${perRow}">${grid.map((row, r) => `<div class="overview-row ${r % 2 ? 'is-alt' : ''}" style="--dur:${rowDuration(r)}s"><div class="overview-track"><div class="overview-set">${row.map(card).join('')}</div><div class="overview-set" aria-hidden="true">${row.map(card).join('')}</div><div class="overview-set" aria-hidden="true">${row.map(card).join('')}</div></div></div>`).join('')}</div></div>`;
     el.querySelectorAll<HTMLElement>('.overview-set[aria-hidden] button').forEach(b => b.tabIndex = -1);
     document.body.append(el);
     document.body.classList.add('overview-lock');
     overviewEl = el;
-    overviewClosing = false;
-    overviewAnimations = [];
-    stopOverviewCanvas = startOverviewCanvas(el, reducedMotion());
-    const plane = el.querySelector<HTMLElement>('.overview-plane')!;
-    const tilted = getComputedStyle(plane).transform;
-    if (reducedMotion()) {
-        overviewAnimate(el, [{ opacity: 0 }, { opacity: 1 }], 200);
-    } else {
-        if (top) {
-            const target = visibleOverviewCard(el, top.dataset.name)?.getBoundingClientRect()
-                ?? new DOMRect(innerWidth / 2 - 60, innerHeight / 2 - 40, 120, 80);
-            flyOverviewCard(top, top.getBoundingClientRect(), target, true);
-        }
-        overviewAnimate(el, [{ opacity: 0 }, { opacity: 1 }], 700);
-        overviewAnimate(plane, [{ transform: flatPlane, opacity: 0 }, { transform: tilted, opacity: 1 }], 700);
-        el.querySelectorAll<HTMLElement>('.overview-track').forEach((track, i) => {
-            // Animate a wrapper, leaving track transforms exclusively owned by the canvas.
-            const sets = [...track.children] as HTMLElement[];
-            sets.forEach(set => overviewAnimate(set, [{ opacity: 0, transform: 'translateY(24px)' }, { opacity: 1, transform: 'translateY(0)' }], 500, Math.min(i, 10) * 30));
-        });
-        overviewAnimate(el.querySelector<HTMLElement>('.overview-bar')!, [{ opacity: 0 }, { opacity: 1 }], 500, 150);
+    overviewCanvas = startOverviewCanvas(el, reducedMotion(), () => { save('overviewDragHint','1'); hideDragHint(); });
+    // Bring an instance of the top name to the screen centre before measuring, so the camera pulls straight back from it.
+    {
+        const plane = el.querySelector<HTMLElement>('.overview-plane')!, prev = plane.style.transform;
+        plane.style.transform = 'none';
+        const P = plane.getBoundingClientRect(), C = visibleOverviewCard(el, top?.dataset.name).getBoundingClientRect();
+        overviewCanvas.panBy(P.x + P.width / 2 - C.x - C.width / 2, P.y + P.height / 2 - C.y - C.height / 2);
+        plane.style.transform = prev;
     }
+    measureCamera(visibleOverviewCard(el, top?.dataset.name));
+    drawCamera(); runCamera();
     el.querySelector<HTMLElement>('#overview-close')!.onclick = () => closeOverview();
     el.onclick = e => { const b = (e.target as HTMLElement).closest<HTMLElement>('.overview-card'); if (b) closeOverview(b.dataset.name!, b); };
     el.querySelector<HTMLElement>('#overview-close')!.focus();
 }
 function closeOverview(name?: string, clicked?: HTMLElement) {
-    const el = overviewEl;
-    if (!el || overviewClosing) return;
-    overviewClosing = true;
-    stopOverviewCanvas?.(); stopOverviewCanvas = undefined;
-    const plane = el.querySelector<HTMLElement>('.overview-plane')!;
-    const currentTransform = getComputedStyle(plane).transform;
-    const opacity = getComputedStyle(el).opacity;
-    const source = clicked ?? visibleOverviewCard(el);
-    const from = source?.getBoundingClientRect();
-    overviewAnimations.forEach(animation => animation.cancel());
-    overviewAnimations = [];
-    if (name) { pinned = name; decisions = decisions.filter(d => d.person.name !== name); render(); }
-    const top = document.querySelector<HTMLElement>('.swipe-card.is-top');
-    if (!reducedMotion() && top) {
-        const target = top.getBoundingClientRect();
-        const start = from ?? new DOMRect(innerWidth / 2 - 60, innerHeight / 2 - 40, 120, 80);
-        if (source) flyOverviewCard(source, start, target, true);
-        // The real stack card grows out of the clicked tile, so the landing frame is pixel-identical to the stack.
-        const land = top.cloneNode(true) as HTMLElement;
-        land.removeAttribute('id'); land.setAttribute('aria-hidden', 'true'); land.inert = true;
-        Object.assign(land.style, { position: 'fixed', left: `${target.x}px`, top: `${target.y}px`, width: `${target.width}px`, height: `${target.height}px`,
-            margin: '0', zIndex: '101', transformOrigin: '0 0', pointerEvents: 'none' });
-        document.body.append(land); top.style.visibility = 'hidden';
-        const inv = `translate(${start.x - target.x}px,${start.y - target.y}px) scale(${start.width / target.width},${start.height / target.height})`;
-        const a = overviewAnimate(land, [{ transform: inv, opacity: 0 }, { opacity: 1, offset: .45 }, { transform: 'none', opacity: 1 }], 700);
-        void a.finished.catch(() => {}).then(() => { land.remove(); top.style.visibility = ''; });
+    if (!overviewEl || !camera) return;
+    hideDragHint(); overviewCanvas?.setActive(false); overviewEl.classList.remove('is-settled');
+    if (camera.target === 0) return;
+    // Mid-flight reversal keeps the same geometry, position and velocity.
+    if (camera.p === 1 || name) {
+        const focal = clicked ?? visibleOverviewCard(overviewEl, availableCards()[0]?.name);
+        if (name) { pinned=name; decisions=decisions.filter(d => d.person.name!==name); render(); }
+        measureCamera(focal);
     }
-    if (!reducedMotion()) {
-        overviewAnimate(plane, [{ transform: currentTransform, opacity: 1 }, { transform: flatPlane, opacity: 0 }], 700);
-        overviewAnimate(el.querySelector<HTMLElement>('.overview-bar')!, [{ opacity: 1 }, { opacity: 0 }], 300);
-    }
-    const fade = overviewAnimate(el, [{ opacity }, { opacity: 0 }], reducedMotion() ? 200 : 700);
-    void fade.finished.then(() => {
-        el.remove(); overviewEl = null; overviewClosing = false;
-        overviewAnimations.forEach(animation => animation.cancel()); overviewAnimations = [];
-        document.body.classList.remove('overview-lock');
-        document.getElementById('overview-open')?.focus();
-    });
+    camera.target=0; drawCamera(); runCamera();
 }
 function decide(keep: boolean) {
     if (deciding || loading || failed || route() !== 'choose') return;
