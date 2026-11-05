@@ -61,7 +61,7 @@ ${near.length ? `<p class="yr">相邻年份：${near.map(x => `<a href="${up}${x
 <html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#1f3d30">
 <title>${esc(p.title)}</title><meta name="description" content="${esc(p.description)}">
 <link rel="canonical" href="${url}"><link rel="alternate" hreflang="zh" href="${url}"><link rel="alternate" hreflang="en" href="${url}"><link rel="alternate" hreflang="x-default" href="${url}">
-<link rel="icon" type="image/svg+xml" href="${up}favicon.svg"><link rel="icon" type="image/png" sizes="32x32" href="${up}favicon-32.png"><link rel="apple-touch-icon" href="${up}apple-touch-icon.png">
+<link rel="icon" type="image/svg+xml" href="${up}favicon.svg?v=2"><link rel="icon" type="image/png" sizes="32x32" href="${up}favicon-32.png?v=2"><link rel="apple-touch-icon" href="${up}apple-touch-icon.png?v=2">
 <meta property="og:type" content="website"><meta property="og:site_name" content="同年名 · Name Vintage"><meta property="og:title" content="${esc(p.title)}"><meta property="og:description" content="${esc(p.description)}"><meta property="og:url" content="${url}"><meta property="og:image" content="${ORIGIN}og.png"><meta name="twitter:card" content="summary_large_image">
 <link rel="preload" href="${up}fonts/bricolage-latin.woff2" as="font" type="font/woff2" crossorigin><link rel="stylesheet" href="${up}names.css">
 <script type="application/ld+json">${JSON.stringify(crumbs)}</script></head><body>
