@@ -63,7 +63,7 @@ ${near.length ? `<p class="yr">相邻年份：${near.map(x => `<a href="${up}${x
 <link rel="canonical" href="${url}"><link rel="alternate" hreflang="zh" href="${url}"><link rel="alternate" hreflang="en" href="${url}"><link rel="alternate" hreflang="x-default" href="${url}">
 <link rel="icon" type="image/svg+xml" href="${up}favicon.svg?v=2"><link rel="icon" type="image/png" sizes="32x32" href="${up}favicon-32.png?v=2"><link rel="apple-touch-icon" href="${up}apple-touch-icon.png?v=2">
 <meta property="og:type" content="website"><meta property="og:site_name" content="同年名 · Name Vintage"><meta property="og:title" content="${esc(p.title)}"><meta property="og:description" content="${esc(p.description)}"><meta property="og:url" content="${url}"><meta property="og:image" content="${ORIGIN}og.png"><meta name="twitter:card" content="summary_large_image">
-<link rel="preload" href="${up}fonts/bricolage-latin.woff2" as="font" type="font/woff2" crossorigin><link rel="stylesheet" href="${up}names.css">
+<link rel="preload" href="${up}fonts/bricolage-latin.woff2" as="font" type="font/woff2" crossorigin><link rel="preload" href="${up}fonts/allo-variable.woff2" as="font" type="font/woff2" crossorigin><link rel="stylesheet" href="${up}names.css">
 <script type="application/ld+json">${JSON.stringify(crumbs)}</script></head><body>
 <header><a class="brand" href="${up}"><svg viewBox="0 0 64 64" width="34" height="34" aria-hidden="true"><rect x="16" y="6" width="36" height="46" rx="7" class="bk" transform="rotate(10 34 29)"/><rect x="10" y="12" width="36" height="46" rx="7" class="fr"/><path d="M19 47V35a6 6 0 0 1 12 0v12" class="n"/><circle cx="37" cy="45" r="3" class="bk"/></svg>同年名 <span>Name Vintage</span></a><a class="cta" href="${up}#/choose">开始挑名字 ↗</a></header>
 <main><p class="crumb"><a href="${up}names/">英文名目录</a> / SSA ${meta.years[0]}–${last}</p><h1>${esc(p.h1.split(' · ')[0])}<span lang="en">${esc(p.h1.split(' · ')[1] ?? '')}</span></h1><p class="intro">${p.intro}</p>
@@ -75,7 +75,8 @@ ${nav}</main>
 }
 
 export const CSS = `@font-face{font-family:"Bricolage Grotesque";src:url(fonts/bricolage-latin.woff2) format("woff2");font-weight:400 800;font-display:swap}
-:root{--bg:#f4f1e8;--text:#1f3d30;--muted:#5f6f65;--line:#dcdccf;--accent:#1f3d30;--sage:#9db8a3;--panel:#fbfaf5;color-scheme:light dark;font-family:"Inter Tight","Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif}
+@font-face{font-family:"Allo";src:url(fonts/allo-variable.woff2) format("woff2");font-weight:100 900;font-style:normal;font-display:swap}
+:root{--bg:#f4f1e8;--text:#1f3d30;--muted:#5f6f65;--line:#dcdccf;--accent:#1f3d30;--sage:#9db8a3;--panel:#fbfaf5;color-scheme:light dark;font-family:"Inter Tight","Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif;--font-name:"Allo","Bricolage Grotesque","Noto Sans SC",sans-serif}
 @media(prefers-color-scheme:dark){:root{--bg:#16231d;--text:#e9e8dc;--muted:#a9b4a7;--line:#33433a;--accent:#b4c8a1;--sage:#5f7d68;--panel:#1c2b24}}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);line-height:1.6}
 a{color:inherit;text-underline-offset:3px;text-decoration-color:var(--sage)}a:hover{text-decoration-color:currentColor}
@@ -90,7 +91,7 @@ h2{font-family:"Bricolage Grotesque","Noto Sans SC",sans-serif;font-size:1.25rem
 .cols{display:grid;grid-template-columns:1fr 1fr;gap:32px}@media(max-width:720px){.cols{grid-template-columns:1fr;gap:8px}}
 table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums;font-size:.95rem;margin-top:16px}
 th{white-space:nowrap;text-align:left;font-weight:500;font-size:.75rem;color:var(--muted);border-bottom:1px solid var(--text);padding:8px 6px}
-td{border-bottom:1px solid var(--line);padding:7px 6px}td:first-child{color:var(--muted);width:4.5em}td.nm{font-family:"Bricolage Grotesque",sans-serif;font-weight:600;font-size:1.08rem;letter-spacing:-.01em}
+td{border-bottom:1px solid var(--line);padding:7px 6px}td:first-child{color:var(--muted);width:4.5em}td.nm{font-family:var(--font-name);font-weight:600;font-size:1.08rem;letter-spacing:-.01em}
 th:nth-child(n+3),td:nth-child(n+3){text-align:right}tbody tr:hover{background:var(--panel)}
 .go{margin:40px 0;display:flex;gap:18px;align-items:center;flex-wrap:wrap}
 .hub{border-top:1px solid var(--line);margin-top:24px}.az{display:flex;flex-wrap:wrap;gap:4px}.az a{display:inline-grid;place-items:center;width:36px;height:36px;border:1px solid var(--line);border-radius:4px;text-decoration:none;font-family:"Bricolage Grotesque",sans-serif}.az a:hover{border-color:var(--text)}

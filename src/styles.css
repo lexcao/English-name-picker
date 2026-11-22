@@ -1,10 +1,11 @@
-/* Self-hosted fonts (SIL OFL 1.1): Bricolage Grotesque, Inter Tight, Noto Sans SC (UI-text subset) */
+/* Self-hosted fonts (SIL OFL 1.1): Bricolage Grotesque, Inter Tight, Noto Sans SC (UI-text subset); Allo (English names, see fonts/OFL-Allo.txt) */
 @font-face{font-family:"Bricolage Grotesque";src:url(/fonts/bricolage-latin.woff2) format("woff2");font-weight:400 800;font-display:swap;unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+20AC,U+2122,U+2190-2199,U+2212,U+2215,U+266A}
 @font-face{font-family:"Inter Tight";src:url(/fonts/inter-tight-latin.woff2) format("woff2");font-weight:400 600;font-display:swap;unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+20AC,U+2122,U+2190-2199,U+2212,U+2215,U+266A}
 @font-face{font-family:"Noto Sans SC";src:url(/fonts/noto-sans-sc-ui.woff2) format("woff2");font-weight:400 800;font-display:swap;unicode-range:U+3000-303F,U+4E00-9FFF,U+FF00-FFEF}
 @font-face{font-family:"Bricolage Fallback";src:local("Arial"),local("Helvetica Neue"),local("Liberation Sans");size-adjust:98.4%;ascent-override:94.5%;descent-override:27.4%;line-gap-override:0%}
 @font-face{font-family:"Inter Tight Fallback";src:local("Arial"),local("Helvetica Neue"),local("Liberation Sans");size-adjust:95.7%;ascent-override:101.2%;descent-override:25.2%;line-gap-override:0%}
-:root{--font-display:"Bricolage Grotesque","Bricolage Fallback","Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif;--font-ui:"Inter Tight","Inter Tight Fallback","Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif}
+@font-face{font-family:"Allo";src:url(/fonts/allo-variable.woff2) format("woff2");font-weight:100 900;font-style:normal;font-display:swap}
+:root{--font-display:"Bricolage Grotesque","Bricolage Fallback","Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif;--font-ui:"Inter Tight","Inter Tight Fallback","Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif;--font-name:"Allo","Bricolage Fallback","Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif}
 :root {
   font-family:var(--font-ui);
   --text:#243c32;
@@ -188,7 +189,7 @@ h3 {
   pointer-events:none
 }
 .word-art span {
-  font:italic 2.7rem var(--font-display);
+  font:italic 2.7rem var(--font-name);
   padding:9px 28px;
   border:1px solid var(--line);
   border-radius:50px;
@@ -394,6 +395,7 @@ summary {
   min-width:0
 }
 .name-card strong {
+  font-family:var(--font-name);
   font-size:.95rem;
   overflow-wrap:anywhere
 }
@@ -686,7 +688,7 @@ main:has(.choose-page) { padding-top:14px }
 .swipe-card.is-behind { transform:translateY(calc(var(--depth) * 10px)) scale(calc(1 - var(--depth) * .045)); pointer-events:none }
 .swipe-card::after { content:''; position:absolute; inset:-1px; border-radius:inherit; background:var(--soft); opacity:calc(min(var(--depth), 1) * .85); pointer-events:none }
 .card-topline { position:absolute; inset:26px 28px auto; display:flex; justify-content:space-between; gap:12px; font-size:.8rem; color:var(--muted) }
-.swipe-card h2 { font:500 clamp(2.8rem,6vw,5.5rem)/1.15 var(--font-display); letter-spacing:-.055em; max-width:100%; overflow-wrap:anywhere; margin:24px 0 12px }
+.swipe-card h2 { font:500 clamp(2.8rem,6vw,5.5rem)/1.15 var(--font-name); letter-spacing:-.055em; max-width:100%; overflow-wrap:anywhere; margin:24px 0 12px }
 .card-occurrences { font-size:.85rem; color:var(--muted); margin-bottom:16px }
 .card-pronounce { border:0; background:transparent; color:var(--accent); font-size:1.3rem }
 .card-pronounce span { font-size:.8rem; vertical-align:middle; margin-left:5px }
@@ -760,7 +762,7 @@ body.overview-lock { overflow:hidden }
 .overview-row.is-alt .overview-card { background:var(--soft) }
 .overview-card:focus-visible { transform:translateY(-4px); border-color:var(--accent) }
 @media(hover:hover){ .overview-stage:not(.is-dragging) .overview-card:hover { transform:translateY(-4px); border-color:var(--accent) } }
-.overview-card strong { font:500 2rem/1.1 var(--font-display); letter-spacing:-.03em }
+.overview-card strong { font:500 2rem/1.1 var(--font-name); letter-spacing:-.03em }
 .overview-card small { font-size:.72rem; color:var(--muted) }
 .overview-star { color:var(--accent); font-size:.9rem; margin-left:6px; vertical-align:super }
 @media(prefers-color-scheme:dark) {
@@ -885,7 +887,7 @@ main:has(.choose-page) { padding-top:28px }
 .shortlist h2 { font-size:.78rem; font-weight:550; letter-spacing:.04em }
 .shortlist .badge { background:transparent; padding:3px 0 3px 12px; border-left:1px solid var(--line); border-radius:0; font:italic 1.25rem var(--font-display) }
 .shortlist p { font-size:.82rem; line-height:1.9; max-width:210px }
-.shortlist .name-speak { font:400 1.3rem var(--font-display); padding:12px 6px }
+.shortlist .name-speak { font:400 1.3rem var(--font-name); padding:12px 6px }
 .shortlist .name-speak span { font-size:.85rem }
 .shortlist .icon-button { background:transparent; font-size:1rem; min-height:40px }
 :is(.choose-page,.results) .speech { border-top:1px solid var(--line); border-bottom:0; margin-top:24px; padding-top:20px; line-height:1.7 }
@@ -1012,7 +1014,7 @@ th { font-size:.68rem; line-height:1.6 }
 th:first-child,td:first-child { width:14%; padding-left:0 }
 th:nth-child(2),td:nth-child(2) { width:40% }
 th:last-child,td:last-child { text-align:right; padding-right:0 }
-td button { background:transparent; padding:6px 0; text-align:left; font:400 1.2rem var(--font-display); max-width:100%; overflow-wrap:anywhere }
+td button { background:transparent; padding:6px 0; text-align:left; font:400 1.2rem var(--font-name); max-width:100%; overflow-wrap:anywhere }
 td button[aria-pressed=true] { color:var(--accent) }
 .pagination { flex-wrap:wrap; gap:8px; margin-top:28px; color:var(--muted) }
 .pagination button { background:transparent; min-height:40px }
@@ -1025,7 +1027,7 @@ main > .shortlist { position:static; max-width:700px; margin-top:40px }
 .handle-steps li::marker { font:italic 1rem var(--font-display); color:var(--accent) }
 .handle-shortlist { border-top:1px solid var(--line); padding-top:18px; margin-bottom:28px }
 .handle-shortlist legend { padding-right:12px }
-.handle-shortlist button { background:transparent; font:400 1.1rem var(--font-display); overflow-wrap:anywhere; max-width:100% }
+.handle-shortlist button { background:transparent; font:400 1.1rem var(--font-name); overflow-wrap:anywhere; max-width:100% }
 #handle-form { border-top:1px solid var(--line); padding-top:24px; gap:24px }
 #handle-form input { background:transparent; font-size:1rem; min-width:0 }
 #profile-links:not(:empty) { margin-top:32px; border-top:1px solid var(--line) }
